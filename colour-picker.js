@@ -20,7 +20,7 @@ async function pickPageColour(screenshot) {
       canvas { display:none; }
       .hint, .result { position:fixed; padding:12px 16px; border:1px solid #ffffff55; border-radius:10px; background:#172d29; color:white; font:14px/1.4 Consolas,monospace; box-shadow:0 4px 24px #0005; }
       .hint { top:16px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; max-width:calc(100vw - 64px); flex-wrap:wrap; pointer-events:auto; }
-      .hover-toggle { font:inherit; box-sizing:border-box; width:calc(18ch + 20px); flex-shrink:0; padding:5px 9px; border:1px solid #ffffff88; border-radius:6px; white-space:nowrap; text-align:center; }
+      .hover-toggle { cursor:pointer!important; font:inherit; box-sizing:border-box; width:calc(18ch + 20px); flex-shrink:0; padding:5px 9px; border:1px solid #ffffff88; border-radius:6px; white-space:nowrap; text-align:center; }
       .hover-toggle[aria-checked="true"] { background:#365d48; }
       .hover-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
       .result { display:flex; align-items:center; gap:10px; pointer-events:auto; }
