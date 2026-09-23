@@ -3,6 +3,25 @@ importScripts("snapshot.js", "colour-picker.js");
 const snapshotsInProgress = new Set();
 const colourPickersInProgress = new Set();
 
+// Captures requested by the injected picker after scrolling or resizing.
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type !== 'devtoolkit-capture-colour') return;
+  async function capture() {
+    const tab = sender.tab;
+    if (!tab?.id || sender.frameId !== 0) throw new Error('Invalid picker tab');
+    const { toolkitEnabled = true } = await chrome.storage.local.get('toolkitEnabled');
+    if (!toolkitEnabled) throw new Error('DevToolkit is disabled');
+    const [active] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+    if (active?.id !== tab.id) throw new Error('Picker tab is not active');
+    const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+    const [current] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+    if (current?.id !== tab.id || current.url !== active.url) throw new Error('Page changed during capture');
+    return { ok: true, screenshot };
+  }
+  void capture().then(sendResponse, error => sendResponse({ ok: false, error: error.message }));
+  return true;
+});
+
 // The worker receives commands even when no sidebar document exists.
 chrome.commands.onCommand.addListener((command, tab) => {
   if (!["snapshot-dom", "download-page", "colour-picker"].includes(command)) return;

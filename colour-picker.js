@@ -1,5 +1,6 @@
 // Self-contained so it can run in the active webpage's isolated world.
 async function pickPageColour(screenshot) {
+  const { colourHoverEnabled = true } = await chrome.storage.local.get({ colourHoverEnabled: true });
   let image;
   try {
     // Decode locally instead of loading an <img>: a site's img-src policy
@@ -12,21 +13,28 @@ async function pickPageColour(screenshot) {
   return new Promise(resolve => {
     const host = document.createElement('div');
     host.setAttribute('data-devtoolkit-picker', '');
-    host.style.cssText = 'all:initial!important;position:fixed!important;inset:0!important;z-index:2147483647!important;';
+    host.style.cssText = 'all:initial!important;position:fixed!important;inset:0!important;z-index:2147483647!important;pointer-events:none!important;';
     const shadow = host.attachShadow({ mode: 'closed' });
     const style = new CSSStyleSheet();
     style.replaceSync(`
-      canvas { position:fixed; inset:0; width:100vw; height:100vh; cursor:crosshair; }
+      canvas { display:none; }
       .hint, .result { position:fixed; padding:12px 16px; border:1px solid #ffffff55; border-radius:10px; background:#172d29; color:white; font:14px/1.4 Consolas,monospace; box-shadow:0 4px 24px #0005; }
-      .hint { top:16px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; }
-      .result { display:flex; align-items:center; gap:10px; }
+      .hint { top:16px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; max-width:calc(100vw - 64px); flex-wrap:wrap; pointer-events:auto; }
+      .hover-toggle { font:inherit; box-sizing:border-box; width:calc(18ch + 20px); flex-shrink:0; padding:5px 9px; border:1px solid #ffffff88; border-radius:6px; white-space:nowrap; text-align:center; }
+      .hover-toggle[aria-checked="true"] { background:#365d48; }
+      .hover-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
+      .result { display:flex; align-items:center; gap:10px; pointer-events:auto; }
       .swatch { width:22px; height:22px; border:1px solid #ffffff88; border-radius:5px; }
-      button { border:0; background:transparent; color:white; cursor:pointer; font:20px sans-serif; }
+      button { border:0; background:transparent; color:white; font:20px sans-serif; }
       .copy { display:flex; align-items:center; gap:10px; padding:0; font:inherit; }
       .copy:focus-visible { outline:2px solid white; outline-offset:4px; }
       .feedback { position:absolute; top:100%; left:0; margin-top:4px; padding:4px 8px; border-radius:5px; background:#172d29; white-space:nowrap; }
     `);
-    shadow.adoptedStyleSheets = [style];
+    // Apply to the page as well as our shadow DOM without changing site styles.
+    const cursorStyle = new CSSStyleSheet();
+    cursorStyle.replaceSync('* { cursor:crosshair!important; }');
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, cursorStyle];
+    shadow.adoptedStyleSheets = [style, cursorStyle];
     const canvas = document.createElement('canvas');
     canvas.width = image.width;
     canvas.height = image.height;
@@ -37,18 +45,117 @@ async function pickPageColour(screenshot) {
     image.close();
     const hint = document.createElement('div');
     hint.className = 'hint';
-    hint.textContent = 'Click colours to pick · Press Esc to close';
+    const hintText = document.createElement('span');
+    const hoverToggle = document.createElement('button');
+    hoverToggle.type = 'button';
+    hoverToggle.className = 'hover-toggle';
+    hoverToggle.setAttribute('role', 'switch');
+    hoverToggle.setAttribute('aria-label', 'Hover effects');
+    hoverToggle.title = 'Turn off to pick colours without page hover effects';
+    function renderHoverToggle(enabled) {
+      hoverToggle.setAttribute('aria-checked', String(enabled));
+      hoverToggle.textContent = `Hover effects: ${enabled ? 'On' : 'Off'}`;
+    }
+    renderHoverToggle(colourHoverEnabled);
+    hoverToggle.addEventListener('click', async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      hoverToggle.disabled = true;
+      try {
+        await chrome.storage.local.set({ colourHoverEnabled: !hoverEnabled });
+      } catch {
+        hintText.textContent = 'Could not save hover setting. Try again.';
+      } finally {
+        hoverToggle.disabled = false;
+      }
+    });
+    hint.append(hintText, hoverToggle);
     shadow.append(canvas, hint);
     document.documentElement.appendChild(host);
     const previousFocus = document.activeElement;
+    host.tabIndex = -1;
     let latestHex;
     let resultLabel;
     let feedbackTimer;
+    let refreshTimer;
+    let closed = false;
+    let revision = 0;
+    let refreshPromise;
+    let lastCaptureAt = Date.now();
+    let pickSequence = 0;
+    let pixelsReady = true;
+    let hoverEnabled = colourHoverEnabled;
+    let capturedOverlays = [];
+    function overlayBounds() {
+      return [hint, resultLabel].filter(Boolean).map(element => {
+        const rect = element.getBoundingClientRect();
+        // Include the tooltip's shadow and copy feedback below it.
+        return { left: rect.left - 24, right: rect.right + 24,
+          top: rect.top - 24, bottom: rect.bottom + 48 };
+      });
+    }
+    function overlapsOverlay(event, bounds) {
+      return bounds.some(rect => event.clientX >= rect.left && event.clientX <= rect.right &&
+        event.clientY >= rect.top && event.clientY <= rect.bottom);
+    }
+    const instructions = 'Click colours to pick · Esc to close';
+    hintText.textContent = instructions;
+    function onViewportChange() {
+      if (closed) return;
+      revision++;
+      pixelsReady = false;
+      clearTimeout(refreshTimer);
+      // Refresh soon after scrolling settles; captures are throttled separately.
+      refreshTimer = setTimeout(refreshPixels, 100);
+    }
+    function refreshPixels() {
+      if (closed) return Promise.resolve();
+      // A click can await the same capture instead of being dropped.
+      if (refreshPromise) return refreshPromise;
+      refreshPromise = capturePixels().finally(() => { refreshPromise = undefined; });
+      return refreshPromise;
+    }
+    async function capturePixels() {
+      // Chrome limits visible-tab screenshots to two per second.
+      const wait = Math.max(0, 550 - (Date.now() - lastCaptureAt));
+      if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+      if (closed) return;
+      const capturedRevision = revision;
+      // Keep the UI visible during capture. Exclude its pixels when sampling.
+      const overlays = overlayBounds();
+      try {
+        if (closed) return;
+        lastCaptureAt = Date.now();
+        const result = await chrome.runtime.sendMessage({ type: 'devtoolkit-capture-colour' });
+        if (!result?.ok) throw new Error(result?.error || 'Capture failed');
+        const bytes = Uint8Array.from(atob(result.screenshot.split(',')[1]), char => char.charCodeAt(0));
+        const frame = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+        try {
+          if (closed || capturedRevision !== revision) return;
+          canvas.width = frame.width;
+          canvas.height = frame.height;
+          context.drawImage(frame, 0, 0);
+          capturedOverlays = overlays;
+          pixelsReady = true;
+          hintText.textContent = instructions;
+        } finally {
+          frame.close();
+        }
+      } catch {
+        if (!closed) hintText.textContent = 'Click to retry colour capture · Esc to close';
+      }
+    }
     function cleanup() {
+      closed = true;
       clearTimeout(feedbackTimer);
+      clearTimeout(refreshTimer);
       host.remove();
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter(sheet => sheet !== cursorStyle);
       window.removeEventListener('devtoolkit-dismiss-picker', cleanup);
       window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('scroll', onViewportChange, true);
+      window.removeEventListener('resize', onViewportChange);
+      window.removeEventListener('click', onPick, true);
       chrome.storage.onChanged.removeListener(onSettings);
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
       resolve(latestHex ? { ok: true, hex: latestHex } : { ok: true, cancelled: true });
@@ -58,19 +165,76 @@ async function pickPageColour(screenshot) {
     }
     function onSettings(changes, area) {
       if (area === 'local' && changes.toolkitEnabled?.newValue === false) cleanup();
+      if (!closed && area === 'local' && changes.colourHoverEnabled) {
+        applyHoverMode(changes.colourHoverEnabled.newValue !== false);
+      }
     }
     window.addEventListener('devtoolkit-dismiss-picker', cleanup);
     window.addEventListener('keydown', onKey, true);
-    // The canvas displays the captured pixels, so background scrolling and
-    // animations cannot invalidate the colour being sampled. Keep it open.
+    window.addEventListener('scroll', onViewportChange, true);
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('click', onPick, true);
     chrome.storage.onChanged.addListener(onSettings);
-    canvas.focus({ preventScroll: true });
-    canvas.addEventListener('click', event => {
+    host.focus({ preventScroll: true });
+    function applyHoverMode(enabled) {
+      hoverEnabled = enabled;
+      renderHoverToggle(enabled);
+      // Hit-test the transparent canvas instead of page elements. This also
+      // works with cross-origin stylesheets without editing the site's CSS.
+      canvas.style.cssText = enabled ? '' :
+        'display:block;position:fixed;inset:0;width:100vw;height:100vh;opacity:0;pointer-events:auto;';
+      onViewportChange();
+    }
+    canvas.addEventListener('click', event => onPick(event, true));
+    canvas.addEventListener('wheel', event => {
+      if (event.ctrlKey) return; // Preserve browser zoom gestures.
       event.preventDefault();
       event.stopPropagation();
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.max(0, Math.min(canvas.width - 1, Math.floor((event.clientX - rect.left) * canvas.width / rect.width)));
-      const y = Math.max(0, Math.min(canvas.height - 1, Math.floor((event.clientY - rect.top) * canvas.height / rect.height)));
+      canvas.style.pointerEvents = 'none';
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      canvas.style.pointerEvents = 'auto';
+      const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1;
+      const dx = (event.shiftKey && !event.deltaX ? event.deltaY : event.deltaX) * scale;
+      const dy = (event.shiftKey && !event.deltaX ? 0 : event.deltaY) * scale;
+      let remainingX = dx;
+      let remainingY = dy;
+      for (let element = target; element; element = element.parentElement || element.getRootNode()?.host) {
+        const css = getComputedStyle(element);
+        const beforeX = element.scrollLeft;
+        const beforeY = element.scrollTop;
+        const root = element === document.scrollingElement;
+        const x = root || /auto|scroll|overlay/.test(css.overflowX) ? remainingX : 0;
+        const y = root || /auto|scroll|overlay/.test(css.overflowY) ? remainingY : 0;
+        if (x || y) element.scrollBy({ left: x, top: y, behavior: 'instant' });
+        remainingX -= element.scrollLeft - beforeX;
+        remainingY -= element.scrollTop - beforeY;
+        if (!remainingX && !remainingY) break;
+      }
+    }, { passive: false });
+    if (!colourHoverEnabled) applyHoverMode(false);
+    async function onPick(event, fromCanvas = false) {
+      // Let the copy button work; page clicks select pixels without navigation.
+      if (!fromCanvas && event.composedPath().includes(host)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (overlapsOverlay(event, overlayBounds())) return;
+      const sequence = ++pickSequence;
+      const clickedRevision = revision;
+      if (hoverEnabled || !pixelsReady || overlapsOverlay(event, capturedOverlays)) {
+        clearTimeout(refreshTimer);
+        // With hover enabled, a cached frame may predate the pointer entering
+        // the element. Capture after this click, not just after the last scroll.
+        if (hoverEnabled && refreshPromise) {
+          await refreshPromise;
+          if (closed || sequence !== pickSequence || clickedRevision !== revision) return;
+        }
+        pixelsReady = false;
+        await refreshPixels();
+        if (closed || sequence !== pickSequence || clickedRevision !== revision ||
+            !pixelsReady || overlapsOverlay(event, capturedOverlays)) return;
+      }
+      const x = Math.max(0, Math.min(canvas.width - 1, Math.floor(event.clientX * canvas.width / innerWidth)));
+      const y = Math.max(0, Math.min(canvas.height - 1, Math.floor(event.clientY * canvas.height / innerHeight)));
       const rgb = context.getImageData(x, y, 1, 1).data;
       const hex = '#' + [...rgb].slice(0, 3).map(value => value.toString(16).padStart(2, '0')).join('').toUpperCase();
       latestHex = hex;
@@ -130,6 +294,6 @@ async function pickPageColour(screenshot) {
       label.style.left = Math.max(8, Math.min(event.clientX + 12, innerWidth - label.offsetWidth - 8)) + 'px';
       label.style.top = Math.max(8, Math.min(event.clientY + 12, innerHeight - label.offsetHeight - 8)) + 'px';
       copy.focus({ preventScroll: true });
-    });
+    }
   });
 }

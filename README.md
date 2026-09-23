@@ -55,8 +55,10 @@ Press **Alt+2** to download the active page as `page_title_YYYYMMDD_HHMMSS.html`
 
 ### Colour Picker
 
+The **Hover effects** switch in the on-page picker hint panel defaults to on. Turn it off to keep the pointer off page elements while sampling their non-hover colours. The preference is saved, applies to Alt+3, and can be changed while picking. A transparent picking layer suppresses page-element hover without rewriting stylesheets; mouse-wheel and trackpad scrolling remain available. Escape removes the layer and restores normal interaction.
+
 Click **Colour Picker** or press **Alt+3**, then click a pixel on the captured page view. The shortcut works with the panel open or closed and respects the enable switch. Reload the extension after updating; if needed, assign Alt+3 at `chrome://extensions/shortcuts`.
 
-A swatch and CSS hex value appear beside the selected point. Click either to copy the hex value, or click another pixel to pick again. Press Escape to close. Scrolling and resizing do not dismiss it; disabling DevToolkit cancels it. Capture stays local and only includes the visible viewport; animated content is frozen at capture time. If access is missing, reopen the panel with the extension toolbar icon on the current site. Chrome internal pages cannot host the picker.
+A swatch and CSS hex value appear beside the selected point. Click either to copy the hex value, or click another pixel to pick again. Scroll to reach more colours: the picker stays active and refreshes the captured view after scrolling or resizing settles. The hint and colour tooltip stay visible while the page scrolls. Press Escape to close; disabling DevToolkit also cancels it. Capture stays local and only includes the visible viewport; the page stays live while screenshots are sampled in a hidden canvas. If access is missing, reopen the panel with the extension toolbar icon on the current site. Chrome internal pages cannot host the picker.
 
 If Colour Picker reports an activeTab/all_urls permission error, click **Allow page capture** and approve Chrome?s optional all-sites access request. This permission is needed by captureVisibleTab when no temporary activeTab grant is available. The picker retries on the same page after approval; screenshots stay local. Reload the extension after updating its manifest.
