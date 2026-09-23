@@ -1,5 +1,6 @@
 const snapshotButton = document.getElementById("snapshot-dom");
 const downloadButton = document.getElementById("download-page");
+const colourButton = document.getElementById("colour-picker");
 const accessButton = document.getElementById("grant-access");
 let pendingAccess = null;
 let toolkitEnabled = false;
@@ -16,6 +17,7 @@ function renderEnabled() {
   snapshotButton.disabled = !toolkitEnabled || toolBusy;
   accessButton.disabled = !toolkitEnabled || toolBusy;
   downloadButton.disabled = !toolkitEnabled || toolBusy;
+  colourButton.disabled = !toolkitEnabled || toolBusy;
   if (!toolkitEnabled) {
     pendingAccess = null;
     accessButton.hidden = true;
@@ -141,7 +143,7 @@ accessButton.addEventListener("click", async () => {
   if (!toolkitEnabled || toolBusy || !pendingAccess) return;
   toolBusy = true;
   const target = pendingAccess;
-  const actionButton = target.mode === "download" ? downloadButton : snapshotButton;
+  const actionButton = target.mode === "colour" ? colourButton : target.mode === "download" ? downloadButton : snapshotButton;
   renderEnabled();
   accessButton.disabled = true;
   snapshotButton.disabled = true;
@@ -150,14 +152,99 @@ accessButton.addEventListener("click", async () => {
     const granted = await chrome.permissions.request({ origins: [target.origin] });
     if (!granted) {
       actionButton.title = "Site access was not granted. The page has not been changed.";
+      if (target.mode === "colour") colourButton.querySelector("small").textContent = "Page capture permission was not granted.";
       return;
     }
-    await captureSnapshot(target, target.mode);
+    if (target.mode === "colour") {
+      toolBusy = false;
+      await startColourPicker(target);
+    } else {
+      await captureSnapshot(target, target.mode);
+    }
   } catch (error) {
     actionButton.title = `Could not request site access: ${error.message || String(error)}`;
+    if (target.mode === "colour") colourButton.querySelector("small").textContent = actionButton.title;
   } finally {
     accessButton.disabled = false;
     toolBusy = false;
     renderEnabled();
   }
 });
+
+async function startColourPicker(expectedTarget) {
+  if (!toolkitEnabled || toolBusy) return;
+  toolBusy = true;
+  renderEnabled();
+  pendingAccess = null;
+  accessButton.hidden = true;
+  let targetTab;
+  let pickerStarted = false;
+  let cancelled = false;
+  function onPickerEscape(event) {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancelled = true;
+    if (pickerStarted) {
+      void chrome.scripting.executeScript({
+        target: { tabId: targetTab.id },
+        func: () => window.dispatchEvent(new Event('devtoolkit-dismiss-picker')),
+      }).catch(error => console.warn("Could not dismiss colour picker", error));
+    }
+  }
+  window.addEventListener("keydown", onPickerEscape, true);
+  const colourHint = colourButton.querySelector("small");
+  colourButton.title = "Click a pixel on the page. Press Escape to cancel.";
+  colourHint.textContent = "Click a page colour ? Esc to cancel";
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) throw new Error("No active webpage found.");
+    targetTab = tab;
+    if (expectedTarget && (tab.id !== expectedTarget.tabId || tab.url !== expectedTarget.url)) {
+      throw new Error("The active page changed. Click Colour Picker again.");
+    }
+    if (!/^https?:|^file:/.test(tab.url || '') || /^(https?:\/\/)(chromewebstore.google.com|chrome.google.com\/webstore)/.test(tab.url)) {
+      throw new Error("Chrome protects this page. Try a regular website.");
+    }
+    // Remove a previous result before capturing the pixels underneath it.
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => {
+      window.dispatchEvent(new Event('devtoolkit-dismiss-picker'));
+    }});
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+    const [currentTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+    if (currentTab?.id !== tab.id || currentTab.url !== tab.url) throw new Error("The active page changed. Try again.");
+    const state = await chrome.storage.local.get({ toolkitEnabled: true });
+    if (!state.toolkitEnabled) return;
+    if (cancelled) {
+      colourHint.textContent = "Cancelled - click to try again";
+      colourButton.title = "Colour picking cancelled";
+      return;
+    }
+    pickerStarted = true;
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id }, func: pickPageColour, args: [screenshot],
+    });
+    const result = results?.[0]?.result;
+    if (!result?.ok) throw new Error(result?.error || "Colour picker could not start.");
+    colourHint.textContent = result.cancelled ? "Cancelled ? click to try again" : result.hex;
+    colourButton.title = result.cancelled ? "Colour picking cancelled" : `Picked colour: ${result.hex}`;
+  } catch (error) {
+    colourButton.title = `Could not pick colour: ${error.message}. Reopen DevToolkit using its toolbar icon on this website to grant page access.`;
+    colourHint.textContent = `Unable to pick: ${error.message}. Reopen the panel using the toolbar icon to refresh site access.`;
+    if (targetTab && /all_urls|activeTab|Cannot access contents|host permission/i.test(error.message || "")) {
+      pendingAccess = { mode: "colour", origin: "<all_urls>", tabId: targetTab.id, url: targetTab.url };
+      accessButton.textContent = "Allow page capture";
+      accessButton.hidden = false;
+      colourHint.textContent = "Chrome requires all-sites access for page capture without a temporary tab grant. Click Allow page capture below.";
+      colourButton.title = colourHint.textContent;
+    }
+    console.warn("Colour picker failed", error);
+  } finally {
+    window.removeEventListener("keydown", onPickerEscape, true);
+    toolBusy = false;
+    renderEnabled();
+  }
+}
+
+colourButton.addEventListener("click", () => startColourPicker());

@@ -5,7 +5,7 @@
   "description": "A collection of coding and developer tools for your browser.",
   "minimum_chrome_version": "116",
   "permissions": ["sidePanel", "activeTab", "scripting", "tabs", "storage", "downloads"],
-  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "optional_host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "commands": {
     "snapshot-dom": {

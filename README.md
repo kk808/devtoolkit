@@ -52,3 +52,9 @@ API reference: https://developer.chrome.com/docs/extensions/reference/api/sidePa
 ### Download shortcut
 
 Press **Alt+2** to download the active page as `page_title_YYYYMMDD_HHMMSS.html`, whether the panel is open or closed. The DevToolkit toggle must be enabled. Reload the extension after this update; if necessary, assign Alt+2 at `chrome://extensions/shortcuts`. The `downloads` permission lets the background worker save the file without a sidebar.
+
+### Colour Picker
+
+Click **Colour Picker**, then click a pixel on the captured page view. A swatch and CSS hex value appear beside the selected point. This samples rendered pixels, including images and gradients, rather than reading CSS declarations. Press Escape to cancel or dismiss, or use the result?s close button. Scrolling or resizing dismisses the picker. Disabling DevToolkit cancels it. Capture stays local and only includes the visible viewport; animated content is frozen at capture time. If access is missing, reopen the panel with the extension toolbar icon on the current site. Chrome internal pages cannot host the picker.
+
+If Colour Picker reports an activeTab/all_urls permission error, click **Allow page capture** and approve Chrome?s optional all-sites access request. This permission is needed by captureVisibleTab when no temporary activeTab grant is available. The picker retries on the same page after approval; screenshots stay local. Reload the extension after updating its manifest.

@@ -8,6 +8,7 @@ function snapshotDOM(mode = "preview") {
 
   try {
     const clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('[data-devtoolkit-picker]').forEach(el => el.remove());
 
     // 1. Remove scripts and inline event handlers.
     clone.querySelectorAll('script').forEach(el => el.remove());
