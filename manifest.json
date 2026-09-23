@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Devtool Side Panel",
+  "name": "DevToolkit",
   "version": "0.1.0",
-  "description": "Toggle a companion panel beside your current tab.",
+  "description": "A collection of coding and developer tools for your browser.",
   "minimum_chrome_version": "116",
   "permissions": ["sidePanel", "activeTab", "scripting", "tabs"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
@@ -10,11 +10,11 @@
   "commands": {
     "snapshot-dom": {
       "suggested_key": { "default": "Alt+1" },
-      "description": "Snapshot DOM while the Devtool panel is open"
+      "description": "Snapshot DOM while the DevToolkit panel is open"
     }
   },
   "action": {
-    "default_title": "Toggle Devtool panel",
+    "default_title": "Toggle DevToolkit panel",
     "default_icon": { "16": "icons/panel-16.png", "32": "icons/panel-32.png" }
   },
   "icons": {

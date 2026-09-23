@@ -11,7 +11,7 @@ async function captureSnapshot(expectedTarget, shortcutTabId) {
 
   try {
     if (!chrome.scripting?.executeScript) {
-      throw new Error("Reload Devtool in chrome://extensions, then close and reopen this panel to activate its updated permissions.");
+      throw new Error("Reload DevToolkit in chrome://extensions, then close and reopen this panel to activate its updated permissions.");
     }
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (shortcutTabId !== undefined &&
@@ -40,13 +40,13 @@ async function captureSnapshot(expectedTarget, shortcutTabId) {
       });
     } catch (error) {
       if (url.protocol === "file:") {
-        throw new Error("Enable Allow access to file URLs in Devtool’s extension details, then try again.");
+        throw new Error("Enable Allow access to file URLs in DevToolkit’s extension details, then try again.");
       }
       if (await chrome.permissions.contains({ origins: [origin] })) throw error;
       pendingAccess = { tabId: tab.id, origin };
       accessButton.textContent = `Allow access to ${url.hostname}`;
       accessButton.hidden = false;
-      toolStatus.textContent = "Devtool needs access to this site. Use the button below to grant access and create the snapshot.";
+      toolStatus.textContent = "DevToolkit needs access to this site. Use the button below to grant access and create the snapshot.";
       return;
     }
     const result = results?.[0]?.result;
