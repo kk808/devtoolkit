@@ -1,12 +1,19 @@
 :root { color-scheme: light; font-family: "Segoe UI", sans-serif; color: #243c35; background: #f7f7f0; }
 * { box-sizing: border-box; }
+.toggle { width: 44px; height: 26px; padding: 3px; border: 0; border-radius: 20px; background: #9ba59b; cursor: pointer; flex-shrink: 0; }
+.toggle span { display: block; width: 20px; height: 20px; border-radius: 50%; background: white; transition: transform 150ms ease; }
+.toggle[aria-checked="true"] { background: #426b3b; }
+.toggle[aria-checked="true"] span { transform: translateX(18px); }
+.toggle:focus-visible { outline: 3px solid #65744e; outline-offset: 3px; }
+.toggle:disabled { opacity: .5; cursor: wait; }
+@media (prefers-reduced-motion: reduce) { .toggle span { transition: none; } }
 body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
-header { padding: 24px; border-bottom: 1px solid #dce1d5; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header { padding: 24px; border-bottom: 1px solid #dce1d5; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: center; font-size: 23px; font-weight: 650; letter-spacing: -1px; }
 .dot { color: #60824b; }
 .mark { width: 19px; height: 19px; border: 2px solid #243c35; border-radius: 4px; margin-right: 10px; position: relative; }
 .mark::after { content: ""; position: absolute; inset: 0 0 0 8px; background: #243c35; }
-.label, .eyebrow, footer { font-family: Consolas, monospace; font-size: 10px; letter-spacing: 1px; }
+.label, .eyebrow, footer { font-family: Consolas, monospace; font-size: 1rem; letter-spacing: 1px; }
 .label { color: #647069; }
 main { padding: 40px 24px; flex: 1; }
 .tools { margin-bottom: 30px; }
@@ -17,8 +24,6 @@ main { padding: 40px 24px; flex: 1; }
 .tool-icon { width: 32px; height: 32px; flex-shrink: 0; color: #333333; }
 .tool-button strong { display: block; font-size: 14px; font-weight: 600; }
 .tool-button small { display: block; margin-top: 4px; font: 11px Consolas, monospace; color: #606d62; }
-.tool-status { font-size: 12px; margin: 10px 0 0; }
-.tool-status:empty { display: none; }
 .access-button { margin-top: 12px; padding: 9px 12px; color: #243c35; background: #d6e7a8; border: 1px solid #65744e; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
 .access-button:focus-visible { outline: 3px solid #65744e; outline-offset: 3px; }
 .eyebrow { color: #65744e; font-size: 9px; }
@@ -38,4 +43,6 @@ p { font-size: 14px; line-height: 1.65; color: #606d62; max-width: 34ch; }
 .hint-number { font-family: Consolas, monospace; font-size: 11px; color: #65744e; }
 .hint p { font-size: 12px; margin: 0; }
 footer { display: flex; align-items: center; gap: 8px; padding: 20px 24px; color: #647069; border-top: 1px solid #dce1d5; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #7e9758; }
+.status-dot { width: 12px; height: 12px; border-radius: 50%; background: #9ba59b; }
+.status-dot[data-state="on"] { background: #426b3b; }
+.status-dot[data-state="off"] { background: #971010; }

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "A collection of coding and developer tools for your browser.",
   "minimum_chrome_version": "116",
-  "permissions": ["sidePanel", "activeTab", "scripting", "tabs"],
+  "permissions": ["sidePanel", "activeTab", "scripting", "tabs", "storage"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": { "service_worker": "background.js" },
   "commands": {
@@ -14,7 +14,7 @@
     }
   },
   "action": {
-    "default_title": "Toggle DevToolkit panel",
+    "default_title": "DevToolkit",
     "default_icon": { "16": "icons/panel-16.png", "32": "icons/panel-32.png" }
   },
   "icons": {

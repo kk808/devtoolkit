@@ -13,10 +13,11 @@
       <div class="brand">
         <span class="mark" aria-hidden="true"></span>
         DevToolkit<span class="dot">.</span></div>
+      <button id="toolkit-toggle" class="toggle" type="button" role="switch" aria-checked="false" aria-label="Enable DevToolkit" title="Loading settings..." disabled><span></span></button>
     </header>
     <main>
       <section class="tools" aria-label="Page tools">
-        <button id="snapshot-dom" class="tool-button" type="button" title="Open a DOM snapshot in a new tab (Alt+1)" aria-keyshortcuts="Alt+1" aria-describedby="tool-status">
+        <button id="snapshot-dom" disabled class="tool-button" type="button" title="Open a DOM snapshot in a new tab (Alt+1)" aria-keyshortcuts="Alt+1">
           <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M8 6V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-2" stroke="currentColor" stroke-width="1.5"/>
             <rect x="3" y="8" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -24,10 +25,9 @@
           </svg>
           <span><strong>Snapshot DOM</strong><small>Open a copy in a new tab · Alt+1</small></span>
         </button>
-        <p id="tool-status" class="tool-status" role="status" aria-live="polite"></p>
         <button id="grant-access" class="access-button" type="button" hidden>Allow access to this site</button>
       </section>      
     </main>
-    <footer><span class="status-dot" aria-hidden="true"></span>Dev Toolkit to build.</footer>
+    <footer role="status" aria-live="polite"><span id="status-dot" class="status-dot" aria-hidden="true"></span><span id="toolkit-status">Loading Dev Toolkit...</span></footer>
   </body>
 </html>

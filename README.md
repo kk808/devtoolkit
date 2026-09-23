@@ -33,6 +33,8 @@ After this permission update, reload the extension at `chrome://extensions` and 
 
 ## Manual verification
 
+- Use the enable switch at the top of the panel to pause DevToolkit. Snapshot DOM and Alt+1 do nothing while disabled, including when the panel is closed. The setting persists across browser restarts and is shared by all panels. Open the panel to re-enable it. This pauses the tools; it does not disable the installed extension in Chrome. Chrome still reserves its assigned keyboard shortcut.
+
 - Press **Alt+1** with the panel open and again with it closed: each press should create one snapshot of the active tab. The shortcut runs in the background worker without opening the panel. Other tabs and windows should not create snapshots.
 - If Chrome has not assigned the shortcut after reloading, open `chrome://extensions/shortcuts` and assign **Alt+1** to DevToolkit's snapshot command.
 - If a shortcut fails (for example, on a protected Chrome page), the extension icon shows **!**. Hover over it for the error. A successful shortcut clears the error badge.

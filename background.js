@@ -19,7 +19,9 @@ async function runSnapshotShortcut(tabId) {
   if (snapshotsInProgress.has(tabId)) return;
   snapshotsInProgress.add(tabId);
   try {
-    // Inject immediately from the command, which grants activeTab access.
+    const { toolkitEnabled = true } = await chrome.storage.local.get("toolkitEnabled");
+    if (!toolkitEnabled) return;
+    // The keyboard command grants activeTab access.
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: snapshotDOM,
@@ -27,7 +29,7 @@ async function runSnapshotShortcut(tabId) {
     const result = results?.[0]?.result;
     if (!result?.ok) throw new Error(result?.error || "The page did not return a snapshot result.");
     await chrome.action.setBadgeText({ tabId, text: "" });
-    await chrome.action.setTitle({ tabId, title: "Toggle DevToolkit panel" });
+    await chrome.action.setTitle({ tabId, title: "DevToolkit" });
   } catch (error) {
     console.warn("Could not run snapshot shortcut", error);
     // Surface errors without forcing the panel open.
