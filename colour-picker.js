@@ -27,6 +27,7 @@ async function pickPageColour(screenshot) {
       .swatch { width:22px; height:22px; border:1px solid #ffffff88; border-radius:5px; }
       button { border:0; background:transparent; color:white; font:20px sans-serif; }
       .copy { display:flex; align-items:center; gap:10px; padding:0; font:inherit; }
+      .copy, .copy * { cursor:pointer!important; }
       .copy:focus-visible { outline:2px solid white; outline-offset:4px; }
       .feedback { position:absolute; top:100%; left:0; margin-top:4px; padding:4px 8px; border-radius:5px; background:#172d29; white-space:nowrap; }
     `);
@@ -291,7 +292,7 @@ async function pickPageColour(screenshot) {
       });
       label.append(copy, feedback);
       shadow.append(label);
-      label.style.left = Math.max(8, Math.min(event.clientX + 12, innerWidth - label.offsetWidth - 8)) + 'px';
+      label.style.left = Math.max(8, Math.min(event.clientX - label.offsetWidth / 2, innerWidth - label.offsetWidth - 8)) + 'px';
       label.style.top = Math.max(8, Math.min(event.clientY + 12, innerHeight - label.offsetHeight - 8)) + 'px';
       copy.focus({ preventScroll: true });
     }
