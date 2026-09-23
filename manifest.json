@@ -27,5 +27,5 @@
     "48": "icons/panel-48.png",
     "128": "icons/panel-128.png"
   },
-  "side_panel": { "default_path": "sidepanel.html" }
+  "side_panel": { "default_path": "devtoolkit.html" }
 }

@@ -16,8 +16,8 @@ Chrome controls the native panel's placement. If it appears on the left, open Ch
 
 - `manifest.json`: extension metadata; `sidePanel`, `activeTab`, `scripting`, and `tabs` permissions; optional website access.
 - `background.js`: configures per-tab panels, Chrome's built-in toolbar toggle, and the Snapshot DOM keyboard shortcut.
-- `sidepanel.html` / `sidepanel.css`: starter panel content and appearance.
-- `sidepanel.js`: runs the snapshot tool on the active webpage.
+- `devtoolkit.html` / `devtoolkit.css`: starter panel content and appearance.
+- `devtoolkit.js`: runs the snapshot tool on the active webpage.
 - `snapshot.js`: self-contained `snapshotDOM()` function injected into the webpage.
 - `icons/`: toolbar and extension icons.
 

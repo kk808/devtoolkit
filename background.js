@@ -61,7 +61,7 @@ async function configureTab(tabId) {
   try {
     await chrome.sidePanel.setOptions({
       tabId,
-      path: "sidepanel.html",
+      path: "devtoolkit.html",
       enabled: true,
     });
   } catch (error) {
