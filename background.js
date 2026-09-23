@@ -4,18 +4,19 @@ const snapshotsInProgress = new Set();
 
 // The worker receives commands even when no sidebar document exists.
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (command !== "snapshot-dom") return;
+  if (!["snapshot-dom", "download-page"].includes(command)) return;
+  const mode = command === "download-page" ? "download" : "preview";
   if (typeof tab?.id === "number") {
-    void runSnapshotShortcut(tab.id);
+    void runSnapshotShortcut(tab.id, mode);
   } else {
     void chrome.tabs.query({ active: true, lastFocusedWindow: true })
       .then(([activeTab]) => {
-        if (typeof activeTab?.id === "number") return runSnapshotShortcut(activeTab.id);
+        if (typeof activeTab?.id === "number") return runSnapshotShortcut(activeTab.id, mode);
       }).catch((error) => console.warn("Could not find shortcut target", error));
   }
 });
 
-async function runSnapshotShortcut(tabId) {
+async function runSnapshotShortcut(tabId, mode = "preview") {
   if (snapshotsInProgress.has(tabId)) return;
   snapshotsInProgress.add(tabId);
   try {
@@ -25,9 +26,20 @@ async function runSnapshotShortcut(tabId) {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: snapshotDOM,
+      args: [mode],
     });
     const result = results?.[0]?.result;
     if (!result?.ok) throw new Error(result?.error || "The page did not return a snapshot result.");
+    if (mode === "download") {
+      if (typeof result.html !== "string") throw new Error("Snapshot HTML is missing.");
+      const { toolkitEnabled = true } = await chrome.storage.local.get("toolkitEnabled");
+      if (!toolkitEnabled) return;
+      await chrome.downloads.download({
+        url: `data:text/html;charset=utf-8,${encodeURIComponent(result.html)}`,
+        filename: result.filename,
+        conflictAction: "uniquify",
+      });
+    }
     await chrome.action.setBadgeText({ tabId, text: "" });
     await chrome.action.setTitle({ tabId, title: "DevToolkit" });
   } catch (error) {

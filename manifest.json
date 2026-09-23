@@ -4,13 +4,17 @@
   "version": "0.1.0",
   "description": "A collection of coding and developer tools for your browser.",
   "minimum_chrome_version": "116",
-  "permissions": ["sidePanel", "activeTab", "scripting", "tabs", "storage"],
+  "permissions": ["sidePanel", "activeTab", "scripting", "tabs", "storage", "downloads"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": { "service_worker": "background.js" },
   "commands": {
     "snapshot-dom": {
       "suggested_key": { "default": "Alt+1" },
       "description": "Snapshot the current page DOM"
+    },
+    "download-page": {
+      "suggested_key": { "default": "Alt+2" },
+      "description": "Download the current page DOM snapshot"
     }
   },
   "action": {

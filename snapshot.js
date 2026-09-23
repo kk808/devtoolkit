@@ -107,7 +107,17 @@ function snapshotDOM(mode = "preview") {
     charset.setAttribute('charset', 'utf-8');
     clone.querySelector('head')?.prepend(charset);
     const html = '<!DOCTYPE html>\n' + clone.outerHTML;
-    if (mode === 'download') return { ok: true, html };
+    if (mode === 'download') {
+      const title = document.title.normalize('NFKC').toLowerCase()
+        .replace(/[^\p{L}\p{N}_-]+/gu, '_')
+        .replace(/_+/g, '_').replace(/^[_-]+|[_-]+$/g, '')
+        .slice(0, 100).replace(/[_-]+$/g, '') || 'page';
+      const date = new Date();
+      const pad = value => String(value).padStart(2, '0');
+      const day = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+      const time = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+      return { ok: true, html, filename: `${title}_${day}_${time}.html` };
+    }
 
     // 7. Write the snapshot.
     newTab.document.open();

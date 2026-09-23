@@ -10,7 +10,7 @@ const toolkitStatus = document.getElementById("toolkit-status");
 
 function renderEnabled() {
   statusDot.dataset.state = toolkitEnabled ? "on" : "off";
-  toolkitStatus.textContent = toolkitEnabled ? "DevToolkit ON" : "DevToolkit OFF";
+  toolkitStatus.textContent = toolkitEnabled ? "ON" : "OFF";
   toolkitToggle.setAttribute("aria-checked", String(toolkitEnabled));
   toolkitToggle.title = toolkitEnabled ? "Disable DevToolkit" : "Enable DevToolkit";
   snapshotButton.disabled = !toolkitEnabled || toolBusy;
@@ -111,9 +111,7 @@ async function captureSnapshot(expectedTarget, mode = "preview") {
     if (!result?.ok) throw new Error(result?.error || "The page did not return a snapshot result.");
     if (mode === "download") {
       if (typeof result.html !== "string") throw new Error("Snapshot HTML is missing.");
-      const date = new Date();
-      const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
-      const filename = `page_${stamp}.html`;
+      const filename = result.filename;
       const blobURL = URL.createObjectURL(new Blob([result.html], { type: "text/html;charset=utf-8" }));
       const link = document.createElement("a");
       link.href = blobURL;

@@ -33,7 +33,7 @@ After this permission update, reload the extension at `chrome://extensions` and 
 
 ## Manual verification
 
-- **Download Page** saves the same DOM snapshot as `page_YYYYMMDD.html`, using your computer's current local date. It does not open a preview tab. Both tools preserve form values and readable CSS, remove scripts, event handlers, JavaScript URLs, and embedded frames/objects, and add a policy blocking script execution. Images and linked stylesheets still reference the source site; this is not a fully offline archive. Download Page follows the enable toggle and site-access flow. Repeated filenames may receive a browser-added suffix.
+- **Download Page** saves the same DOM snapshot as `page_title_YYYYMMDD_HHMMSS.html`, using the page title and your computer's current local date and time. Titles are lowercased, spaces and unsafe filename characters become underscores, and an empty title falls back to `page`. For example: `webjet_homepage_20260923_071423.html`. It does not open a preview tab. Both tools preserve form values and readable CSS, remove scripts, event handlers, JavaScript URLs, and embedded frames/objects, and add a policy blocking script execution. Images and linked stylesheets still reference the source site; this is not a fully offline archive. Download Page follows the enable toggle and site-access flow. Repeated filenames may receive a browser-added suffix.
 
 - Use the enable switch at the top of the panel to pause DevToolkit. Snapshot DOM and Alt+1 do nothing while disabled, including when the panel is closed. The setting persists across browser restarts and is shared by all panels. Open the panel to re-enable it. This pauses the tools; it does not disable the installed extension in Chrome. Chrome still reserves its assigned keyboard shortcut.
 
@@ -48,3 +48,7 @@ After this permission update, reload the extension at `chrome://extensions` and 
 - Set Chrome's side panel position to the right and confirm the webpage resizes beside the panel.
 
 API reference: https://developer.chrome.com/docs/extensions/reference/api/sidePanel
+
+### Download shortcut
+
+Press **Alt+2** to download the active page as `page_title_YYYYMMDD_HHMMSS.html`, whether the panel is open or closed. The DevToolkit toggle must be enabled. Reload the extension after this update; if necessary, assign Alt+2 at `chrome://extensions/shortcuts`. The `downloads` permission lets the background worker save the file without a sidebar.
