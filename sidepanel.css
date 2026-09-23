@@ -1,0 +1,41 @@
+:root { color-scheme: light; font-family: "Segoe UI", sans-serif; color: #243c35; background: #f7f7f0; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+header { padding: 24px; border-bottom: 1px solid #dce1d5; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; font-size: 23px; font-weight: 650; letter-spacing: -1px; }
+.dot { color: #60824b; }
+.mark { width: 19px; height: 19px; border: 2px solid #243c35; border-radius: 4px; margin-right: 10px; position: relative; }
+.mark::after { content: ""; position: absolute; inset: 0 0 0 8px; background: #243c35; }
+.label, .eyebrow, footer { font-family: Consolas, monospace; font-size: 10px; letter-spacing: 1px; }
+.label { color: #647069; }
+main { padding: 40px 24px; flex: 1; }
+.tools { margin-bottom: 30px; }
+.tool-button { width: 100%; display: flex; align-items: center; gap: 14px; padding: 16px; text-align: left; font: inherit; color: #243c35; background: #fffef8; border: 1px solid #bcc9b6; border-radius: 9px; cursor: pointer; }
+.tool-button:hover { background: #eaf0de; border-color: #65744e; }
+.tool-button:focus-visible { outline: 3px solid #65744e; outline-offset: 3px; }
+.tool-button:disabled { opacity: 0.6; cursor: wait; }
+.tool-icon { width: 32px; height: 32px; flex-shrink: 0; color: #333333; }
+.tool-button strong { display: block; font-size: 14px; font-weight: 600; }
+.tool-button small { display: block; margin-top: 4px; font: 11px Consolas, monospace; color: #606d62; }
+.tool-status { font-size: 12px; margin: 10px 0 0; }
+.tool-status:empty { display: none; }
+.access-button { margin-top: 12px; padding: 9px 12px; color: #243c35; background: #d6e7a8; border: 1px solid #65744e; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
+.access-button:focus-visible { outline: 3px solid #65744e; outline-offset: 3px; }
+.eyebrow { color: #65744e; font-size: 9px; }
+h1 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(28px, 9vw, 40px); line-height: 1.13; letter-spacing: -1.5px; margin: 18px 0; }
+p { font-size: 14px; line-height: 1.65; color: #606d62; max-width: 34ch; }
+.illustration { margin: 36px 0; border: 1px solid #bcc9b6; border-radius: 9px; overflow: hidden; background: #fffef8; transform: rotate(-2deg); }
+.browser-bar { height: 26px; display: flex; gap: 4px; align-items: center; padding: 0 10px; border-bottom: 1px solid #dce1d5; }
+.browser-bar i { width: 4px; height: 4px; background: #b0bdab; border-radius: 50%; }
+.browser-body { height: 130px; display: flex; }
+.page-lines { flex: 1; padding: 24px 18px; }
+.page-lines b { display: block; height: 5px; margin-bottom: 10px; width: 85%; background: #e2e8db; border-radius: 2px; }
+.page-lines b:first-child { width: 48%; height: 9px; background: #bdcbb4; margin-bottom: 18px; }
+.page-lines b:last-child { width: 65%; }
+.mini-panel { width: 32%; background: #d6e7a8; border-left: 1px solid #bcc9b6; display: grid; place-items: center; }
+.mini-panel span { font-size: 30px; font-weight: 300; color: #52693e; }
+.hint { display: flex; gap: 14px; padding-top: 20px; border-top: 1px solid #dce1d5; align-items: baseline; }
+.hint-number { font-family: Consolas, monospace; font-size: 11px; color: #65744e; }
+.hint p { font-size: 12px; margin: 0; }
+footer { display: flex; align-items: center; gap: 8px; padding: 20px 24px; color: #647069; border-top: 1px solid #dce1d5; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #7e9758; }

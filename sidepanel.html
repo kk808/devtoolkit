@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Devtool</title>
+    <link rel="stylesheet" href="sidepanel.css">
+    <script src="snapshot.js" defer></script>
+    <script src="sidepanel.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand"><span class="mark" aria-hidden="true"></span>devtool<span class="dot">.</span></div>
+      <span class="label">SIDE PANEL</span>
+    </header>
+    <main>
+      <section class="tools" aria-label="Page tools">
+        <button id="snapshot-dom" class="tool-button" type="button" title="Open a DOM snapshot in a new tab (Alt+1)" aria-keyshortcuts="Alt+1" aria-describedby="tool-status">
+          <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M8 6V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-2" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="3" y="8" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M6 12h7M6 16h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span><strong>Snapshot DOM</strong><small>Open a copy in a new tab · Alt+1</small></span>
+        </button>
+        <p id="tool-status" class="tool-status" role="status" aria-live="polite"></p>
+        <button id="grant-access" class="access-button" type="button" hidden>Allow access to this site</button>
+      </section>
+      <span class="eyebrow">A LITTLE SPACE, ALONGSIDE.</span>
+      
+      <div class="hint"><span class="hint-number">01</span><p>Click the extension icon again to close this panel.</p></div>
+    </main>
+    <footer><span class="status-dot" aria-hidden="true"></span>Room to build.</footer>
+  </body>
+</html>
