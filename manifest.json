@@ -15,6 +15,10 @@
     "download-page": {
       "suggested_key": { "default": "Alt+2" },
       "description": "Download the current page DOM snapshot"
+    },
+    "colour-picker": {
+      "suggested_key": { "default": "Alt+3" },
+      "description": "Pick colours from the current page"
     }
   },
   "action": {

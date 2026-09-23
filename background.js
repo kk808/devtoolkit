@@ -1,20 +1,61 @@
-importScripts("snapshot.js");
+importScripts("snapshot.js", "colour-picker.js");
 
 const snapshotsInProgress = new Set();
+const colourPickersInProgress = new Set();
 
 // The worker receives commands even when no sidebar document exists.
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (!["snapshot-dom", "download-page"].includes(command)) return;
+  if (!["snapshot-dom", "download-page", "colour-picker"].includes(command)) return;
   const mode = command === "download-page" ? "download" : "preview";
+  const run = tabId => command === "colour-picker"
+    ? runColourPickerShortcut(tabId) : runSnapshotShortcut(tabId, mode);
   if (typeof tab?.id === "number") {
-    void runSnapshotShortcut(tab.id, mode);
+    void run(tab.id);
   } else {
     void chrome.tabs.query({ active: true, lastFocusedWindow: true })
       .then(([activeTab]) => {
-        if (typeof activeTab?.id === "number") return runSnapshotShortcut(activeTab.id, mode);
+        if (typeof activeTab?.id === "number") return run(activeTab.id);
       }).catch((error) => console.warn("Could not find shortcut target", error));
   }
 });
+
+async function runColourPickerShortcut(tabId) {
+  if (colourPickersInProgress.has(tabId)) return;
+  colourPickersInProgress.add(tabId);
+  try {
+    const { toolkitEnabled = true } = await chrome.storage.local.get("toolkitEnabled");
+    if (!toolkitEnabled) return;
+    const tab = await chrome.tabs.get(tabId);
+    const [activeTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+    if (activeTab?.id !== tabId) return;
+    // Do not replace a picker already opened from the panel or another worker.
+    const [existing] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => !!document.querySelector('[data-devtoolkit-picker]'),
+    });
+    if (existing?.result) return;
+    const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+    const [currentTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+    if (currentTab?.id !== tabId || currentTab.url !== tab.url) return;
+    const state = await chrome.storage.local.get({ toolkitEnabled: true });
+    if (!state.toolkitEnabled) return;
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId }, func: pickPageColour, args: [screenshot],
+    });
+    if (!result?.result?.ok) throw new Error(result?.result?.error || "Colour picker could not start.");
+    await chrome.action.setBadgeText({ tabId, text: "" });
+    await chrome.action.setTitle({ tabId, title: "DevToolkit" });
+  } catch (error) {
+    console.warn("Could not run colour picker shortcut", error);
+    await Promise.allSettled([
+      chrome.action.setBadgeText({ tabId, text: "!" }),
+      chrome.action.setBadgeBackgroundColor({ tabId, color: "#742F14" }),
+      chrome.action.setTitle({ tabId, title: `Colour picker failed: ${error.message || String(error)}` }),
+    ]);
+  } finally {
+    colourPickersInProgress.delete(tabId);
+  }
+}
 
 async function runSnapshotShortcut(tabId, mode = "preview") {
   if (snapshotsInProgress.has(tabId)) return;

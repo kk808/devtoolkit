@@ -55,6 +55,8 @@ Press **Alt+2** to download the active page as `page_title_YYYYMMDD_HHMMSS.html`
 
 ### Colour Picker
 
-Click **Colour Picker**, then click a pixel on the captured page view. A swatch and CSS hex value appear beside the selected point. This samples rendered pixels, including images and gradients, rather than reading CSS declarations. Press Escape to cancel or dismiss, or use the result?s close button. Scrolling or resizing dismisses the picker. Disabling DevToolkit cancels it. Capture stays local and only includes the visible viewport; animated content is frozen at capture time. If access is missing, reopen the panel with the extension toolbar icon on the current site. Chrome internal pages cannot host the picker.
+Click **Colour Picker** or press **Alt+3**, then click a pixel on the captured page view. The shortcut works with the panel open or closed and respects the enable switch. Reload the extension after updating; if needed, assign Alt+3 at `chrome://extensions/shortcuts`.
+
+A swatch and CSS hex value appear beside the selected point. Click either to copy the hex value, or click another pixel to pick again. Press Escape to close. Scrolling and resizing do not dismiss it; disabling DevToolkit cancels it. Capture stays local and only includes the visible viewport; animated content is frozen at capture time. If access is missing, reopen the panel with the extension toolbar icon on the current site. Chrome internal pages cannot host the picker.
 
 If Colour Picker reports an activeTab/all_urls permission error, click **Allow page capture** and approve Chrome?s optional all-sites access request. This permission is needed by captureVisibleTab when no temporary activeTab grant is available. The picker retries on the same page after approval; screenshots stay local. Reload the extension after updating its manifest.
