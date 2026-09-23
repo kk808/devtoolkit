@@ -3,7 +3,7 @@ const toolStatus = document.getElementById("tool-status");
 const accessButton = document.getElementById("grant-access");
 let pendingAccess = null;
 
-async function captureSnapshot(expectedTarget, shortcutTabId) {
+async function captureSnapshot(expectedTarget) {
   snapshotButton.disabled = true;
   accessButton.hidden = true;
   pendingAccess = null;
@@ -14,8 +14,6 @@ async function captureSnapshot(expectedTarget, shortcutTabId) {
       throw new Error("Reload DevToolkit in chrome://extensions, then close and reopen this panel to activate its updated permissions.");
     }
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (shortcutTabId !== undefined &&
-        (tab?.id !== shortcutTabId || document.visibilityState !== "visible")) return;
     if (typeof tab?.id !== "number") {
       throw new Error("No active webpage found.");
     }
@@ -61,22 +59,6 @@ async function captureSnapshot(expectedTarget, shortcutTabId) {
 }
 
 snapshotButton.addEventListener("click", () => captureSnapshot());
-
-// Listen in the panel itself: a closed panel cannot trigger a snapshot.
-// Hidden panels in other tabs/windows must also ignore the command.
-chrome.commands.onCommand.addListener((command, tab) => {
-  if (command !== "snapshot-dom" || !tab ||
-      document.visibilityState !== "visible" || snapshotButton.disabled) return;
-
-  void chrome.windows.getCurrent().then((currentWindow) => {
-    if (currentWindow.id !== tab.windowId || !currentWindow.focused ||
-        document.visibilityState !== "visible" || snapshotButton.disabled) return;
-    return captureSnapshot(undefined, tab.id);
-  }).catch((error) => {
-    console.warn("Could not run snapshot shortcut", error);
-    toolStatus.textContent = `Could not run snapshot shortcut: ${error.message || String(error)}`;
-  });
-});
 
 accessButton.addEventListener("click", async () => {
   if (!pendingAccess) return;

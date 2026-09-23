@@ -15,7 +15,7 @@ Chrome controls the native panel's placement. If it appears on the left, open Ch
 ## Files
 
 - `manifest.json`: extension metadata; `sidePanel`, `activeTab`, `scripting`, and `tabs` permissions; optional website access.
-- `background.js`: configures per-tab panels and Chrome's built-in toolbar toggle.
+- `background.js`: configures per-tab panels, Chrome's built-in toolbar toggle, and the Snapshot DOM keyboard shortcut.
 - `sidepanel.html` / `sidepanel.css`: starter panel content and appearance.
 - `sidepanel.js`: runs the snapshot tool on the active webpage.
 - `snapshot.js`: self-contained `snapshotDOM()` function injected into the webpage.
@@ -33,8 +33,9 @@ After this permission update, reload the extension at `chrome://extensions` and 
 
 ## Manual verification
 
-- With DevToolkit visible, press **Alt+1** from the webpage or sidebar to run Snapshot DOM. Close the panel and verify the shortcut no longer creates a snapshot. Panels in other windows or hidden tabs should not respond.
-- If Chrome has not assigned the shortcut after reloading, open `chrome://extensions/shortcuts` and assign **Alt+1** to DevToolkit's snapshot command. Chrome reserves the assigned shortcut even when the panel is closed; the snapshot action is simply ignored then.
+- Press **Alt+1** with the panel open and again with it closed: each press should create one snapshot of the active tab. The shortcut runs in the background worker without opening the panel. Other tabs and windows should not create snapshots.
+- If Chrome has not assigned the shortcut after reloading, open `chrome://extensions/shortcuts` and assign **Alt+1** to DevToolkit's snapshot command.
+- If a shortcut fails (for example, on a protected Chrome page), the extension icon shows **!**. Hover over it for the error. A successful shortcut clears the error badge.
 
 - Click the icon twice: the panel should open and close.
 - Close using Chrome's X, then click the icon: it should reopen.

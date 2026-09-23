@@ -10,7 +10,7 @@
   "commands": {
     "snapshot-dom": {
       "suggested_key": { "default": "Alt+1" },
-      "description": "Snapshot DOM while the DevToolkit panel is open"
+      "description": "Snapshot the current page DOM"
     }
   },
   "action": {
