@@ -1,5 +1,6 @@
 :root { color-scheme: light; font-family: "Segoe UI", sans-serif; color: #243c35; background: #f7f7f0; }
 * { box-sizing: border-box; }
+.tool-button + .tool-button { margin-top: 12px; }
 .toggle { width: 44px; height: 26px; padding: 3px; border: 0; border-radius: 20px; background: #9ba59b; cursor: pointer; flex-shrink: 0; }
 .toggle span { display: block; width: 20px; height: 20px; border-radius: 50%; background: white; transition: transform 150ms ease; }
 .toggle[aria-checked="true"] { background: #426b3b; }

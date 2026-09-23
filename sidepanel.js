@@ -1,4 +1,5 @@
 const snapshotButton = document.getElementById("snapshot-dom");
+const downloadButton = document.getElementById("download-page");
 const accessButton = document.getElementById("grant-access");
 let pendingAccess = null;
 let toolkitEnabled = false;
@@ -14,6 +15,7 @@ function renderEnabled() {
   toolkitToggle.title = toolkitEnabled ? "Disable DevToolkit" : "Enable DevToolkit";
   snapshotButton.disabled = !toolkitEnabled || toolBusy;
   accessButton.disabled = !toolkitEnabled || toolBusy;
+  downloadButton.disabled = !toolkitEnabled || toolBusy;
   if (!toolkitEnabled) {
     pendingAccess = null;
     accessButton.hidden = true;
@@ -55,13 +57,14 @@ toolkitToggle.addEventListener("click", async () => {
   }
 });
 
-async function captureSnapshot(expectedTarget) {
+async function captureSnapshot(expectedTarget, mode = "preview") {
+  const actionButton = mode === "download" ? downloadButton : snapshotButton;
   if (!toolkitEnabled) return;
   toolBusy = true;
-  snapshotButton.disabled = true;
+  renderEnabled();
   accessButton.hidden = true;
   pendingAccess = null;
-  snapshotButton.title = "Creating snapshot...";
+  actionButton.title = "Creating snapshot...";
 
   try {
     if (!chrome.scripting?.executeScript) {
@@ -91,24 +94,42 @@ async function captureSnapshot(expectedTarget) {
       results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: snapshotDOM,
+        args: [mode],
       });
     } catch (error) {
       if (url.protocol === "file:") {
         throw new Error("Enable Allow access to file URLs in DevToolkit’s extension details, then try again.");
       }
       if (await chrome.permissions.contains({ origins: [origin] })) throw error;
-      pendingAccess = { tabId: tab.id, origin };
+      pendingAccess = { tabId: tab.id, origin, mode };
       accessButton.textContent = `Allow access to ${url.hostname}`;
       accessButton.hidden = false;
-      snapshotButton.title = "DevToolkit needs access to this site. Use the button below to grant access and create the snapshot.";
+      actionButton.title = "DevToolkit needs access to this site. Use the button below to grant access and create the snapshot.";
       return;
     }
     const result = results?.[0]?.result;
     if (!result?.ok) throw new Error(result?.error || "The page did not return a snapshot result.");
-    snapshotButton.title = "Snapshot opened in a new tab.";
+    if (mode === "download") {
+      if (typeof result.html !== "string") throw new Error("Snapshot HTML is missing.");
+      const date = new Date();
+      const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+      const filename = `page_${stamp}.html`;
+      const blobURL = URL.createObjectURL(new Blob([result.html], { type: "text/html;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = blobURL;
+      link.download = filename;
+      document.body.appendChild(link);
+      try { link.click(); } finally {
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(blobURL), 60000);
+      }
+      actionButton.title = `Download started: ${filename}`;
+    } else {
+      actionButton.title = "Snapshot opened in a new tab.";
+    }
   } catch (error) {
     console.warn("Could not create snapshot", error);
-    snapshotButton.title = `Could not create snapshot: ${error.message || String(error)}`;
+    actionButton.title = `Could not create snapshot: ${error.message || String(error)}`;
   } finally {
     toolBusy = false;
     renderEnabled();
@@ -116,23 +137,26 @@ async function captureSnapshot(expectedTarget) {
 }
 
 snapshotButton.addEventListener("click", () => captureSnapshot());
+downloadButton.addEventListener("click", () => captureSnapshot(undefined, "download"));
 
 accessButton.addEventListener("click", async () => {
   if (!toolkitEnabled || toolBusy || !pendingAccess) return;
   toolBusy = true;
   const target = pendingAccess;
+  const actionButton = target.mode === "download" ? downloadButton : snapshotButton;
+  renderEnabled();
   accessButton.disabled = true;
   snapshotButton.disabled = true;
   try {
     // Request directly from the click, before any await, to retain the user gesture.
     const granted = await chrome.permissions.request({ origins: [target.origin] });
     if (!granted) {
-      snapshotButton.title = "Site access was not granted. The page has not been changed.";
+      actionButton.title = "Site access was not granted. The page has not been changed.";
       return;
     }
-    await captureSnapshot(target);
+    await captureSnapshot(target, target.mode);
   } catch (error) {
-    snapshotButton.title = `Could not request site access: ${error.message || String(error)}`;
+    actionButton.title = `Could not request site access: ${error.message || String(error)}`;
   } finally {
     accessButton.disabled = false;
     toolBusy = false;

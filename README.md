@@ -33,6 +33,8 @@ After this permission update, reload the extension at `chrome://extensions` and 
 
 ## Manual verification
 
+- **Download Page** saves the same DOM snapshot as `page_YYYYMMDD.html`, using your computer's current local date. It does not open a preview tab. Both tools preserve form values and readable CSS, remove scripts, event handlers, JavaScript URLs, and embedded frames/objects, and add a policy blocking script execution. Images and linked stylesheets still reference the source site; this is not a fully offline archive. Download Page follows the enable toggle and site-access flow. Repeated filenames may receive a browser-added suffix.
+
 - Use the enable switch at the top of the panel to pause DevToolkit. Snapshot DOM and Alt+1 do nothing while disabled, including when the panel is closed. The setting persists across browser restarts and is shared by all panels. Open the panel to re-enable it. This pauses the tools; it does not disable the installed extension in Chrome. Chrome still reserves its assigned keyboard shortcut.
 
 - Press **Alt+1** with the panel open and again with it closed: each press should create one snapshot of the active tab. The shortcut runs in the background worker without opening the panel. Other tabs and windows should not create snapshots.

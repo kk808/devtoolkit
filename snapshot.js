@@ -1,7 +1,7 @@
 // Self-contained: Chrome serializes this function into the current webpage.
-function snapshotDOM() {
-  const newTab = window.open('', '_blank');
-  if (!newTab) {
+function snapshotDOM(mode = "preview") {
+  const newTab = mode === 'download' ? null : window.open('', '_blank');
+  if (mode !== 'download' && !newTab) {
     console.error('Popup blocked');
     return { ok: false, error: 'Popup blocked. Allow popups for this website and try again.' };
   }
@@ -82,13 +82,40 @@ function snapshotDOM() {
       }
     });
 
+    // Strip executable content, including inert template contents and embedded pages.
+    function clean(root) {
+      root.querySelectorAll('template').forEach(template => clean(template.content));
+      root.querySelectorAll('script, iframe, frame, frameset, object, embed, applet, meta[http-equiv], link[rel="import"], link[rel="modulepreload"]').forEach(el => el.remove());
+      const elements = root.nodeType === 1 ? [root, ...root.querySelectorAll('*')] : [...root.querySelectorAll('*')];
+      for (const el of elements) {
+        for (const attr of [...el.attributes]) {
+          const name = attr.name.toLowerCase();
+          const value = attr.value.replace(/[\u0000-\u0020\u007f]/g, '').toLowerCase();
+          if (name.startsWith('on') || name === 'srcdoc' || value.startsWith('javascript:') || value.startsWith('vbscript:')) {
+            el.removeAttribute(attr.name);
+          }
+        }
+      }
+    }
+    clean(clone);
+    const policy = document.createElement('meta');
+    policy.httpEquiv = 'Content-Security-Policy';
+    policy.content = "script-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'";
+    clone.querySelector('head')?.prepend(policy);
+    clone.querySelectorAll('meta[charset]').forEach(el => el.remove());
+    const charset = document.createElement('meta');
+    charset.setAttribute('charset', 'utf-8');
+    clone.querySelector('head')?.prepend(charset);
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    if (mode === 'download') return { ok: true, html };
+
     // 7. Write the snapshot.
     newTab.document.open();
-    newTab.document.write('<!DOCTYPE html>\n' + clone.outerHTML);
+    newTab.document.write(html);
     newTab.document.close();
     return { ok: true };
   } catch (error) {
-    newTab.close();
+    newTab?.close();
     return { ok: false, error: error.message || String(error) };
   }
 }
