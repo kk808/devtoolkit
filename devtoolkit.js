@@ -1,13 +1,47 @@
 const snapshotButton = document.getElementById("snapshot-dom");
 const downloadButton = document.getElementById("download-page");
 const colourButton = document.getElementById("colour-picker");
+const urlParserButton = document.getElementById("url-parser");
 const accessButton = document.getElementById("grant-access");
 let pendingAccess = null;
 let toolkitEnabled = false;
 let toolBusy = false;
+let activeUrlParser = null;
 const toolkitToggle = document.getElementById("toolkit-toggle");
 const statusDot = document.getElementById("status-dot");
 const toolkitStatus = document.getElementById("toolkit-status");
+
+chrome.runtime.onMessage.addListener(message => {
+  if (message?.type === "devtoolkit-url-parser-closed" &&
+      message.instanceToken === activeUrlParser?.instanceToken) {
+    activeUrlParser = null;
+  }
+});
+
+window.addEventListener("keydown", event => {
+  if (event.key !== "Escape" || !activeUrlParser) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const { tabId } = activeUrlParser;
+  void chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => window.dispatchEvent(new Event("devtoolkit-dismiss-url-parser")),
+  }).catch(error => console.warn("Could not close URL Parser overlay", error));
+}, true);
+
+async function closeActiveUrlParser() {
+  if (!activeUrlParser) return;
+  const { tabId } = activeUrlParser;
+  activeUrlParser = null;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => window.dispatchEvent(new Event("devtoolkit-dismiss-url-parser")),
+    });
+  } catch (error) {
+    console.warn("Could not close URL Parser before starting another tool", error);
+  }
+}
 
 function renderEnabled() {
   statusDot.dataset.state = toolkitEnabled ? "on" : "off";
@@ -18,6 +52,7 @@ function renderEnabled() {
   accessButton.disabled = !toolkitEnabled || toolBusy;
   downloadButton.disabled = !toolkitEnabled || toolBusy;
   colourButton.disabled = !toolkitEnabled || toolBusy;
+  urlParserButton.disabled = !toolkitEnabled || toolBusy;
   if (!toolkitEnabled) {
     pendingAccess = null;
     accessButton.hidden = true;
@@ -69,6 +104,7 @@ async function captureSnapshot(expectedTarget, mode = "preview") {
   actionButton.title = "Creating snapshot...";
 
   try {
+    await closeActiveUrlParser();
     if (!chrome.scripting?.executeScript) {
       throw new Error("Reload DevToolkit in chrome://extensions, then close and reopen this panel to activate its updated permissions.");
     }
@@ -138,12 +174,13 @@ async function captureSnapshot(expectedTarget, mode = "preview") {
 
 snapshotButton.addEventListener("click", () => captureSnapshot());
 downloadButton.addEventListener("click", () => captureSnapshot(undefined, "download"));
+urlParserButton.addEventListener("click", () => startUrlParser());
 
 accessButton.addEventListener("click", async () => {
   if (!toolkitEnabled || toolBusy || !pendingAccess) return;
   toolBusy = true;
   const target = pendingAccess;
-  const actionButton = target.mode === "colour" ? colourButton : target.mode === "download" ? downloadButton : snapshotButton;
+  const actionButton = target.mode === "colour" ? colourButton : target.mode === "url" ? urlParserButton : target.mode === "download" ? downloadButton : snapshotButton;
   renderEnabled();
   accessButton.disabled = true;
   snapshotButton.disabled = true;
@@ -158,6 +195,9 @@ accessButton.addEventListener("click", async () => {
     if (target.mode === "colour") {
       toolBusy = false;
       await startColourPicker(target);
+    } else if (target.mode === "url") {
+      toolBusy = false;
+      await startUrlParser(target);
     } else {
       await captureSnapshot(target, target.mode);
     }
@@ -171,12 +211,66 @@ accessButton.addEventListener("click", async () => {
   }
 });
 
+async function startUrlParser(expectedTarget) {
+  if (!toolkitEnabled || toolBusy) return;
+  toolBusy = true;
+  renderEnabled();
+  pendingAccess = null;
+  accessButton.hidden = true;
+  urlParserButton.title = "Reading the active page URL...";
+  try {
+    await closeActiveUrlParser();
+    if (!chrome.scripting?.executeScript) {
+      throw new Error("Reload DevToolkit in chrome://extensions, then close and reopen this panel to activate its updated permissions.");
+    }
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (typeof tab?.id !== "number" || !tab.url) throw new Error("No active webpage found.");
+    const url = new URL(tab.url);
+    if (!["http:", "https:"].includes(url.protocol) ||
+        url.hostname === "chromewebstore.google.com" ||
+        (url.hostname === "chrome.google.com" && url.pathname.startsWith("/webstore"))) {
+      throw new Error("Chrome protects this page from overlays. Try a regular http or https website.");
+    }
+    const origin = `${url.protocol}//${url.hostname}/*`;
+    if (expectedTarget && (tab.id !== expectedTarget.tabId || origin !== expectedTarget.origin)) {
+      throw new Error("The active page changed. Click URL Parser again for the new page.");
+    }
+    try {
+      const state = await chrome.storage.local.get({ toolkitEnabled: true });
+      if (!state.toolkitEnabled) return;
+      const instanceToken = `${Date.now()}-${Math.random()}`;
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: showUrlParser,
+        args: [instanceToken],
+      });
+      if (!results?.[0]?.result?.ok) throw new Error(results?.[0]?.result?.error || "The URL overlay could not be opened.");
+      activeUrlParser = { tabId: tab.id, instanceToken };
+      urlParserButton.title = "URL details are displayed over the active page. Press Escape to close.";
+    } catch (error) {
+      if (await chrome.permissions.contains({ origins: [origin] })) throw error;
+      pendingAccess = { tabId: tab.id, origin, mode: "url" };
+      accessButton.textContent = `Allow access to ${url.hostname}`;
+      accessButton.hidden = false;
+      urlParserButton.title = "DevToolkit needs access to this site. Use the button below to grant access and open the URL parser.";
+      return;
+    }
+  } catch (error) {
+    console.warn("Could not open URL parser", error);
+    urlParserButton.title = `Could not open URL parser: ${error.message || String(error)}`;
+  } finally {
+    toolBusy = false;
+    renderEnabled();
+  }
+}
+
 async function startColourPicker(expectedTarget) {
   if (!toolkitEnabled || toolBusy) return;
   toolBusy = true;
   renderEnabled();
   pendingAccess = null;
   accessButton.hidden = true;
+  await closeActiveUrlParser();
   let targetTab;
   let pickerStarted = false;
   let cancelled = false;

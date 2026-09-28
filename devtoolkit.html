@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="devtoolkit.css">
     <script src="snapshot.js" defer></script>
     <script src="colour-picker.js" defer></script>
+    <script src="url-parser.js" defer></script>
     <script src="devtoolkit.js" defer></script>
   </head>
   <body>
@@ -35,6 +36,10 @@
         <button id="colour-picker" disabled class="tool-button" type="button" title="Pick a colour from the visible page (Alt+3)" aria-keyshortcuts="Alt+3">
           <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 5 5 5M16 3a3 3 0 0 1 4 4L8 19l-5 2 2-5L16 3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span><strong>Colour Picker · Alt+3</strong><small>Pick any pixel · get its hex colour</small></span>
+        </button>
+        <button id="url-parser" disabled class="tool-button" type="button" title="Parse the current page URL and show its components">
+          <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2-2A5 5 0 0 0 12 3.93l-1.15 1.15M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span><strong>URL Parser</strong><small>Parse URL components & params</small></span>
         </button>
         <button id="grant-access" class="access-button" type="button" hidden>Allow access to this site</button>
       </section>      
