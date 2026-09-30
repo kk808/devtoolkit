@@ -12,6 +12,22 @@ let activeColourPickerTabId = null;
 const toolkitToggle = document.getElementById("toolkit-toggle");
 const statusDot = document.getElementById("status-dot");
 const toolkitStatus = document.getElementById("toolkit-status");
+const themeToggle = document.getElementById("theme-toggle");
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  const next = theme === "dark" ? "light" : "dark";
+  themeToggle.setAttribute("aria-label", `Switch to ${next} theme`);
+  themeToggle.title = `Switch to ${next} theme`;
+}
+
+void chrome.storage.local.get({ theme: "light" }).then(({ theme }) => applyTheme(theme === "dark" ? "dark" : "light"));
+themeToggle.addEventListener("click", async () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try { await chrome.storage.local.set({ theme: next }); }
+  catch (error) { console.warn("Could not save theme", error); }
+});
 
 chrome.runtime.onMessage.addListener(message => {
   if (message?.type === "devtoolkit-url-parser-closed" &&

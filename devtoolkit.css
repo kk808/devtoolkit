@@ -47,3 +47,35 @@ footer { display: flex; align-items: center; gap: 8px; padding: 20px 24px; color
 .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #9ba59b; }
 .status-dot[data-state="on"] { background: #426b3b; }
 .status-dot[data-state="off"] { background: #971010; }
+
+.theme-toggle { margin-left: auto; width: 34px; height: 34px; padding: 7px; display: grid; place-items: center; color: #243c35; background: #fffef8; border: 1px solid #bcc9b6; border-radius: 6px; cursor: pointer; }
+.theme-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-icon-sun { display: none; }
+:root[data-theme="dark"] .theme-icon-moon { display: none; }
+:root[data-theme="dark"] .theme-icon-sun { display: block; }
+.theme-toggle:focus-visible { outline: 3px solid #65744e; outline-offset: 3px; }
+:root[data-theme="dark"] { color-scheme: dark; color: #e2e8e3; background: #181D1A; }
+:root[data-theme="dark"] body { background: #181D1A; }
+:root[data-theme="dark"] header,
+:root[data-theme="dark"] footer { border-color: #35423a; }
+:root[data-theme="dark"] .mark { border-color: #d6e7a8; }
+:root[data-theme="dark"] .mark::after { background: #d6e7a8; }
+:root[data-theme="dark"] .dot,
+:root[data-theme="dark"] .label,
+:root[data-theme="dark"] footer { color: #a9b7ac; }
+:root[data-theme="dark"] .tool-button,
+:root[data-theme="dark"] .theme-toggle { color: #e2e8e3; background: #222b26; border-color: #4b5b50; }
+:root[data-theme="dark"] .tool-button:hover { background: #2d3a30; border-color: #9bb17c; }
+:root[data-theme="dark"] .tool-button small { color: #a9b7ac; }
+:root[data-theme="dark"] .tool-icon { color: #d6e7a8; }
+:root[data-theme="dark"] .access-button { color: #172016; background: #d6e7a8; }
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .hint-number { color: #b5ce91; }
+:root[data-theme="dark"] p { color: #a9b7ac; }
+:root[data-theme="dark"] .illustration { background: #222b26; border-color: #4b5b50; }
+:root[data-theme="dark"] .browser-bar,
+:root[data-theme="dark"] .hint { border-color: #35423a; }
+:root[data-theme="dark"] .page-lines b { background: #35443a; }
+:root[data-theme="dark"] .page-lines b:first-child { background: #647b58; }
+:root[data-theme="dark"] .mini-panel { background: #36432d; border-color: #4b5b50; }
+:root[data-theme="dark"] .mini-panel span { color: #d6e7a8; }

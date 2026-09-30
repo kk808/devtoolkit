@@ -12,9 +12,9 @@ function showUrlParser(instanceToken = "") {
       :host { all: initial; color-scheme: dark; }
       * { box-sizing: border-box; }
       .scrim { position: fixed; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(5, 15, 12, .72); color: #f1f7f3; font: 14px/1.45 "Segoe UI", sans-serif; }
-      .dialog { position: relative; padding-bottom: 34px; width: min(980px, 100%); height: calc(100vh - 48px); height: calc(100dvh - 48px); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #ffffff55; border-radius: 14px; background: #172d29; box-shadow: 0 24px 90px rgba(0,0,0,.55); animation: arrive 160ms ease-out; }
+      .dialog { position: relative; padding-bottom: 34px; width: min(980px, 100%); height: calc(100vh - 48px); height: calc(100dvh - 48px); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #ffffff55; border-radius: 14px; background: #181D1A; box-shadow: 0 24px 90px rgba(0,0,0,.55); animation: arrive 160ms ease-out; }
       @keyframes arrive { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: none; } }
-      .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 17px 17px 17px 22px; border-bottom: 1px solid #ffffff33; background: #1b3932; }
+      .top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 17px 17px 17px 22px; border-bottom: 1px solid #ffffff33; background: #232B26; }
       .heading { min-width: 0; }
       h2 { margin: 0; color: #ffffff; font-size: 18px; font-weight: 650; letter-spacing: -.02em; }
       button { border: 1px solid #ffffff55; border-radius: 7px; background: #23483e; color: #ffffff; cursor: pointer; font: inherit; }
@@ -25,7 +25,7 @@ function showUrlParser(instanceToken = "") {
       .content { flex: 1; min-height: 0; overflow: auto; padding: 16px 22px 18px; }
       .url-label { display: block; margin-bottom: 6px; color: #d5e7dd; font-weight: 600; }
       .url-input-wrap { position: relative; }
-      .url-input { display: block; width: 100%; padding: 10px 44px 10px 12px; border: 1px solid #ffffff55; border-radius: 7px; background: #203c36; color: #f1f7f3; font: 13px/1.45 Consolas, monospace; }
+      .url-input { display: block; width: 100%; padding: 10px 44px 10px 12px; border: 1px solid #ffffff55; border-radius: 7px; background: #232B26; color: #f1f7f3; font: 13px/1.45 Consolas, monospace; }
       .url-clear { position: absolute; top: 50%; right: 7px; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; background: transparent; font-size: 21px; line-height: 1; }
       .url-clear[hidden] { display: none; }
       .url-input[aria-invalid="true"] { border-color: #ffb4ab; }
@@ -35,9 +35,9 @@ function showUrlParser(instanceToken = "") {
       .results { margin-top: 17px; }
       .section { margin-top: 17px; border: 1px solid #ffffff33; border-radius: 9px; overflow: hidden; }
       .section:first-child { margin-top: 0; }
-      .section-title { margin: 0; padding: 11px 13px; border-bottom: 1px solid #ffffff33; background: #24483f; font-weight: 600; }
+      .section-title { margin: 0; padding: 11px 13px; border-bottom: 1px solid #ffffff33; background: #232B26; font-weight: 600; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; font: 13px/1.45 Consolas, "Courier New", monospace; }
-      th { padding: 9px 12px; background: #203c36; color: #c2d8cd; font: 12px/1.4 "Segoe UI", sans-serif; text-align: left; }
+      th { padding: 9px 12px; background: #232B26; color: #c2d8cd; font: 12px/1.4 "Segoe UI", sans-serif; text-align: left; }
       td { padding: 7px 12px; border-top: 1px solid #ffffff26; color: #f1f7f3; overflow-wrap: anywhere; vertical-align: top; }
       th:first-child, td:first-child { width: 32%; color: #d5e7dd; }
       tr.empty td { color: #a9c2b5; }
