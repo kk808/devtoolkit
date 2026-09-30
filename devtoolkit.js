@@ -7,6 +7,7 @@ let pendingAccess = null;
 let toolkitEnabled = false;
 let toolBusy = false;
 let activeUrlParser = null;
+let activeColourPickerTabId = null;
 const toolkitToggle = document.getElementById("toolkit-toggle");
 const statusDot = document.getElementById("status-dot");
 const toolkitStatus = document.getElementById("toolkit-status");
@@ -40,6 +41,20 @@ async function closeActiveUrlParser() {
     });
   } catch (error) {
     console.warn("Could not close URL Parser before starting another tool", error);
+  }
+}
+
+async function closeActiveColourPicker() {
+  if (activeColourPickerTabId === null) return;
+  const tabId = activeColourPickerTabId;
+  activeColourPickerTabId = null;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => window.dispatchEvent(new Event("devtoolkit-dismiss-picker")),
+    });
+  } catch (error) {
+    console.warn("Could not close Colour Picker before starting another tool", error);
   }
 }
 
@@ -219,6 +234,7 @@ async function startUrlParser(expectedTarget) {
   accessButton.hidden = true;
   urlParserButton.title = "Reading the active page URL...";
   try {
+    await closeActiveColourPicker();
     await closeActiveUrlParser();
     if (!chrome.scripting?.executeScript) {
       throw new Error("Reload DevToolkit in chrome://extensions, then close and reopen this panel to activate its updated permissions.");
@@ -316,9 +332,16 @@ async function startColourPicker(expectedTarget) {
       return;
     }
     pickerStarted = true;
-    const results = await chrome.scripting.executeScript({
+    const injection = chrome.scripting.executeScript({
       target: { tabId: tab.id }, func: pickPageColour, args: [screenshot],
     });
+    activeColourPickerTabId = tab.id;
+    // The picker stays active on the page after injection, while the panel
+    // remains available for choosing another tool.
+    toolBusy = false;
+    renderEnabled();
+    const results = await injection;
+    if (activeColourPickerTabId === tab.id) activeColourPickerTabId = null;
     const result = results?.[0]?.result;
     if (!result?.ok) throw new Error(result?.error || "Colour picker could not start.");
     colourHint.textContent = result.cancelled ? "Cancelled ? click to try again" : result.hex;
