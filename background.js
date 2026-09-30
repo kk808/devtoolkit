@@ -1,7 +1,8 @@
-importScripts("snapshot.js", "colour-picker.js");
+importScripts("snapshot.js", "colour-picker.js", "form-fill.js");
 
 const snapshotsInProgress = new Set();
 const colourPickersInProgress = new Set();
+const formFillsInProgress = new Set();
 
 // Captures requested by the injected picker after scrolling or resizing.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -24,10 +25,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // The worker receives commands even when no sidebar document exists.
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (!["snapshot-dom", "download-page", "colour-picker"].includes(command)) return;
+  if (!["snapshot-dom", "download-page", "colour-picker", "form-fill"].includes(command)) return;
   const mode = command === "download-page" ? "download" : "preview";
   const run = tabId => command === "colour-picker"
-    ? runColourPickerShortcut(tabId) : runSnapshotShortcut(tabId, mode);
+    ? runColourPickerShortcut(tabId)
+    : command === "form-fill" ? runFormFillShortcut(tabId)
+    : runSnapshotShortcut(tabId, mode);
   if (typeof tab?.id === "number") {
     void run(tab.id);
   } else {
@@ -37,6 +40,38 @@ chrome.commands.onCommand.addListener((command, tab) => {
       }).catch((error) => console.warn("Could not find shortcut target", error));
   }
 });
+
+async function runFormFillShortcut(tabId) {
+  if (formFillsInProgress.has(tabId)) return;
+  formFillsInProgress.add(tabId);
+  try {
+    const { toolkitEnabled = true } = await chrome.storage.local.get("toolkitEnabled");
+    if (!toolkitEnabled) return;
+    const tab = await chrome.tabs.get(tabId);
+    const [activeTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+    if (activeTab?.id !== tabId) return;
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        window.dispatchEvent(new Event("devtoolkit-dismiss-picker"));
+        window.dispatchEvent(new Event("devtoolkit-dismiss-url-parser"));
+      },
+    });
+    const [result] = await chrome.scripting.executeScript({ target: { tabId }, func: fillFormFields });
+    if (!result?.result?.ok) throw new Error("The page could not fill its form fields.");
+    await chrome.action.setBadgeText({ tabId, text: "" });
+    await chrome.action.setTitle({ tabId, title: "DevToolkit" });
+  } catch (error) {
+    console.warn("Could not run Form Fill shortcut", error);
+    await Promise.allSettled([
+      chrome.action.setBadgeText({ tabId, text: "!" }),
+      chrome.action.setBadgeBackgroundColor({ tabId, color: "#742F14" }),
+      chrome.action.setTitle({ tabId, title: `Form Fill failed: ${error.message || String(error)}` }),
+    ]);
+  } finally {
+    formFillsInProgress.delete(tabId);
+  }
+}
 
 async function runColourPickerShortcut(tabId) {
   if (colourPickersInProgress.has(tabId)) return;

@@ -2,6 +2,7 @@ const snapshotButton = document.getElementById("snapshot-dom");
 const downloadButton = document.getElementById("download-page");
 const colourButton = document.getElementById("colour-picker");
 const urlParserButton = document.getElementById("url-parser");
+const formFillButton = document.getElementById("form-fill");
 const accessButton = document.getElementById("grant-access");
 let pendingAccess = null;
 let toolkitEnabled = false;
@@ -68,6 +69,7 @@ function renderEnabled() {
   downloadButton.disabled = !toolkitEnabled || toolBusy;
   colourButton.disabled = !toolkitEnabled || toolBusy;
   urlParserButton.disabled = !toolkitEnabled || toolBusy;
+  formFillButton.disabled = !toolkitEnabled || toolBusy;
   if (!toolkitEnabled) {
     pendingAccess = null;
     accessButton.hidden = true;
@@ -190,6 +192,40 @@ async function captureSnapshot(expectedTarget, mode = "preview") {
 snapshotButton.addEventListener("click", () => captureSnapshot());
 downloadButton.addEventListener("click", () => captureSnapshot(undefined, "download"));
 urlParserButton.addEventListener("click", () => startUrlParser());
+
+formFillButton.addEventListener("click", async () => {
+  if (!toolkitEnabled || toolBusy) return;
+  toolBusy = true;
+  renderEnabled();
+  pendingAccess = null;
+  accessButton.hidden = true;
+  formFillButton.title = "Filling form fields...";
+  try {
+    await closeActiveColourPicker();
+    await closeActiveUrlParser();
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (typeof tab?.id !== "number" || !/^https?:|^file:/.test(tab.url || "")) {
+      throw new Error("Open a regular webpage to fill its form fields.");
+    }
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: fillFormFields,
+    });
+    const result = results?.[0]?.result;
+    if (!result?.ok) throw new Error("The page could not fill its form fields.");
+    const total = result.textCount + result.checkboxCount + result.radioCount + result.selectCount + result.customOptionCount;
+    formFillButton.title = `Filled ${total} field${total === 1 ? "" : "s"}: ${result.textCount} text, ${result.checkboxCount} checkbox, ${result.radioCount} radio, ${result.selectCount + result.customOptionCount} list.`;
+    formFillButton.querySelector("small").textContent = total
+      ? `${result.textCount} text · ${result.checkboxCount} checkbox · ${result.radioCount} radio · ${result.selectCount + result.customOptionCount} list filled`
+      : "No fillable form fields found";
+  } catch (error) {
+    console.warn("Could not fill form fields", error);
+    formFillButton.title = `Could not fill form fields: ${error.message || String(error)}`;
+  } finally {
+    toolBusy = false;
+    renderEnabled();
+  }
+});
 
 accessButton.addEventListener("click", async () => {
   if (!toolkitEnabled || toolBusy || !pendingAccess) return;

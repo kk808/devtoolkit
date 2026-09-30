@@ -19,6 +19,10 @@
     "colour-picker": {
       "suggested_key": { "default": "Alt+3" },
       "description": "Pick colours from the current page"
+    },
+    "form-fill": {
+      "suggested_key": { "default": "Alt+4" },
+      "description": "Fill form fields on the current page"
     }
   },
   "action": {
