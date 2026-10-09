@@ -1,4 +1,4 @@
-importScripts("snapshot.js", "colour-picker.js", "form-fill.js");
+importScripts("snapshot.js", "colour-picker.js", "form-fill.js", "layout-outline.js");
 
 const snapshotsInProgress = new Set();
 const colourPickersInProgress = new Set();
@@ -25,10 +25,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // The worker receives commands even when no sidebar document exists.
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (!["snapshot-dom", "download-page", "colour-picker", "form-fill"].includes(command)) return;
-  const mode = command === "download-page" ? "download" : "preview";
+  if (!["snapshot-dom", "colour-picker", "form-fill", "layout-outline"].includes(command)) return;
+  const mode = "preview";
   const run = tabId => command === "colour-picker"
     ? runColourPickerShortcut(tabId)
+    : command === "layout-outline" ? runLayoutOutlineShortcut(tabId)
     : command === "form-fill" ? runFormFillShortcut(tabId)
     : runSnapshotShortcut(tabId, mode);
   if (typeof tab?.id === "number") {
@@ -40,6 +41,24 @@ chrome.commands.onCommand.addListener((command, tab) => {
       }).catch((error) => console.warn("Could not find shortcut target", error));
   }
 });
+
+async function runLayoutOutlineShortcut(tabId) {
+  try {
+    const { toolkitEnabled = true } = await chrome.storage.local.get("toolkitEnabled");
+    if (!toolkitEnabled) return;
+    const [result] = await chrome.scripting.executeScript({ target: { tabId }, func: toggleLayoutOutline });
+    if (!result?.result?.ok) throw new Error("The page could not toggle outlines.");
+    await chrome.action.setBadgeText({ tabId, text: "" });
+    await chrome.action.setTitle({ tabId, title: "DevToolkit" });
+  } catch (error) {
+    console.warn("Could not run Layout Outline shortcut", error);
+    await Promise.allSettled([
+      chrome.action.setBadgeText({ tabId, text: "!" }),
+      chrome.action.setBadgeBackgroundColor({ tabId, color: "#742F14" }),
+      chrome.action.setTitle({ tabId, title: `Layout Outline failed: ${error.message || String(error)}` }),
+    ]);
+  }
+}
 
 async function runFormFillShortcut(tabId) {
   if (formFillsInProgress.has(tabId)) return;

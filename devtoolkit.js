@@ -3,6 +3,7 @@ const downloadButton = document.getElementById("download-page");
 const colourButton = document.getElementById("colour-picker");
 const urlParserButton = document.getElementById("url-parser");
 const formFillButton = document.getElementById("form-fill");
+const outlineButton = document.getElementById("layout-outline");
 const accessButton = document.getElementById("grant-access");
 let pendingAccess = null;
 let toolkitEnabled = false;
@@ -86,6 +87,7 @@ function renderEnabled() {
   colourButton.disabled = !toolkitEnabled || toolBusy;
   urlParserButton.disabled = !toolkitEnabled || toolBusy;
   formFillButton.disabled = !toolkitEnabled || toolBusy;
+  outlineButton.disabled = !toolkitEnabled || toolBusy;
   if (!toolkitEnabled) {
     pendingAccess = null;
     accessButton.hidden = true;
@@ -237,6 +239,28 @@ formFillButton.addEventListener("click", async () => {
   } catch (error) {
     console.warn("Could not fill form fields", error);
     formFillButton.title = `Could not fill form fields: ${error.message || String(error)}`;
+  } finally {
+    toolBusy = false;
+    renderEnabled();
+  }
+});
+
+outlineButton.addEventListener("click", async () => {
+  if (!toolkitEnabled || toolBusy) return;
+  toolBusy = true;
+  renderEnabled();
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (typeof tab?.id !== "number" || !/^https?:|^file:/.test(tab.url || "")) {
+      throw new Error("Open a regular webpage to outline its layout.");
+    }
+    const [result] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: toggleLayoutOutline });
+    if (!result?.result?.ok) throw new Error("The page could not toggle outlines.");
+    outlineButton.setAttribute("aria-pressed", String(result.result.enabled));
+    outlineButton.title = `Layout outlines ${result.result.enabled ? "on" : "off"} (Alt+2)`;
+  } catch (error) {
+    console.warn("Could not toggle layout outline", error);
+    outlineButton.title = `Could not toggle layout outline: ${error.message || String(error)}`;
   } finally {
     toolBusy = false;
     renderEnabled();

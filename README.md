@@ -49,9 +49,9 @@ After this permission update, reload the extension at `chrome://extensions` and 
 
 API reference: https://developer.chrome.com/docs/extensions/reference/api/sidePanel
 
-### Download shortcut
+### Download Page
 
-Press **Alt+2** to download the active page as `page_title_YYYYMMDD_HHMMSS.html`, whether the panel is open or closed. The DevToolkit toggle must be enabled. Reload the extension after this update; if necessary, assign Alt+2 at `chrome://extensions/shortcuts`. The `downloads` permission lets the background worker save the file without a sidebar.
+Use the **Download Page** button in the panel to download the active page as `page_title_YYYYMMDD_HHMMSS.html`. It no longer has a keyboard shortcut, because Chrome allows at most four suggested shortcuts per extension.
 
 ### Colour Picker
 

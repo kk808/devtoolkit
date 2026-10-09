@@ -12,10 +12,6 @@
       "suggested_key": { "default": "Alt+1" },
       "description": "Snapshot the current page DOM"
     },
-    "download-page": {
-      "suggested_key": { "default": "Alt+2" },
-      "description": "Download the current page DOM snapshot"
-    },
     "colour-picker": {
       "suggested_key": { "default": "Alt+3" },
       "description": "Pick colours from the current page"
@@ -23,6 +19,10 @@
     "form-fill": {
       "suggested_key": { "default": "Alt+4" },
       "description": "Fill form fields on the current page"
+    },
+    "layout-outline": {
+      "suggested_key": { "default": "Alt+2" },
+      "description": "Toggle layout outlines on the current page"
     }
   },
   "action": {

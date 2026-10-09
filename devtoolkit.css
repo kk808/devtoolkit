@@ -22,6 +22,7 @@ main { padding: 40px 24px; flex: 1; }
 .tool-button:hover { background: #eaf0de; border-color: #65744e; }
 .tool-button:focus-visible { outline: 3px solid #65744e; outline-offset: 3px; }
 .tool-button:disabled { opacity: 0.6; cursor: wait; }
+.tool-button[aria-pressed="true"] { background: #dfe8cf; border-color: #65744e; }
 .tool-icon { width: 32px; height: 32px; flex-shrink: 0; color: #333333; }
 .tool-button strong { display: block; font-size: 14px; font-weight: 600; }
 .tool-button small { display: block; margin-top: 4px; font: 11px Consolas, monospace; color: #606d62; }
