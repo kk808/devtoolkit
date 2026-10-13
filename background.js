@@ -1,4 +1,4 @@
-importScripts("snapshot.js", "colour-picker.js", "form-fill.js", "layout-outline.js");
+importScripts("tools.js", "snapshot.js", "colour-picker.js", "form-fill.js", "layout-outline.js", "crosshair.js");
 
 const snapshotsInProgress = new Set();
 const colourPickersInProgress = new Set();
@@ -42,10 +42,19 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 });
 
+async function dismissOtherTools(tabId, keep = "") {
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, func: dismissPageTools, args: [keep] });
+  } catch (error) {
+    console.warn("Could not close the previous tool", error);
+  }
+}
+
 async function runLayoutOutlineShortcut(tabId) {
   try {
     const { toolkitEnabled = true } = await chrome.storage.local.get("toolkitEnabled");
     if (!toolkitEnabled) return;
+    await dismissOtherTools(tabId, "outline");
     const [result] = await chrome.scripting.executeScript({ target: { tabId }, func: toggleLayoutOutline });
     if (!result?.result?.ok) throw new Error("The page could not toggle outlines.");
     await chrome.action.setBadgeText({ tabId, text: "" });
@@ -71,10 +80,8 @@ async function runFormFillShortcut(tabId) {
     if (activeTab?.id !== tabId) return;
     await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => {
-        window.dispatchEvent(new Event("devtoolkit-dismiss-picker"));
-        window.dispatchEvent(new Event("devtoolkit-dismiss-url-parser"));
-      },
+      func: dismissPageTools,
+      args: [""],
     });
     const [result] = await chrome.scripting.executeScript({ target: { tabId }, func: fillFormFields });
     if (!result?.result?.ok) throw new Error("The page could not fill its form fields.");
@@ -101,6 +108,7 @@ async function runColourPickerShortcut(tabId) {
     const tab = await chrome.tabs.get(tabId);
     const [activeTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
     if (activeTab?.id !== tabId) return;
+    await dismissOtherTools(tabId);
     // Do not replace a picker already opened from the panel or another worker.
     const [existing] = await chrome.scripting.executeScript({
       target: { tabId },
@@ -136,6 +144,7 @@ async function runSnapshotShortcut(tabId, mode = "preview") {
   try {
     const { toolkitEnabled = true } = await chrome.storage.local.get("toolkitEnabled");
     if (!toolkitEnabled) return;
+    await dismissOtherTools(tabId);
     // The keyboard command grants activeTab access.
     const results = await chrome.scripting.executeScript({
       target: { tabId },

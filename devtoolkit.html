@@ -8,7 +8,9 @@
     <script src="snapshot.js" defer></script>
     <script src="colour-picker.js" defer></script>
     <script src="url-parser.js" defer></script>
+    <script src="tools.js" defer></script>
     <script src="layout-outline.js" defer></script>
+    <script src="crosshair.js" defer></script>
     <script src="form-fill.js" defer></script>
     <script src="devtoolkit.js" defer></script>
   </head>
@@ -27,20 +29,24 @@
             <rect x="3" y="8" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
             <path d="M6 12h7M6 16h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <span><strong>Snapshot DOM · Alt+1</strong><small>Open a copy in a new tab</small></span>
+          <span><strong>Snapshot DOM · Alt+1</strong><small>Open Page Snapshot in the New Tab</small></span>
         </button>
         <button id="layout-outline" disabled class="tool-button" type="button" aria-pressed="false" title="Outline all elements on the page (Alt+2)" aria-keyshortcuts="Alt+2">
           <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/><rect x="7" y="7" width="10" height="4" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/><rect x="7" y="13" width="10" height="4" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/></svg>
-          <span><strong>Layout Outline · Alt+2</strong><small>Toggle dashed outlines on all elements</small></span>
+          <span><strong>Layout Outline · Alt+2</strong><small>Ourline All Elements on the Page</small></span>
         </button>        
         <button id="colour-picker" disabled class="tool-button" type="button" title="Pick a colour from the visible page (Alt+3)" aria-keyshortcuts="Alt+3">
           <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 5 5 5M16 3a3 3 0 0 1 4 4L8 19l-5 2 2-5L16 3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><strong>Colour Picker · Alt+3</strong><small>Pick any pixel · get its hex colour</small></span>
+          <span><strong>Colour Picker · Alt+3</strong><small>Pick to View HEX colour code</small></span>
         </button>
         <button id="form-fill" disabled class="tool-button" type="button" title="Fill form fields with simple sample values (Alt+4)" aria-keyshortcuts="Alt+4">
           <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h10M7 12h6M7 16h2m4-1 1.5 1.5L18 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span><strong>Form Fill · Alt+4</strong><small>Fill fields with simple sample values</small></span>
+          <span><strong>Form Fill · Alt+4</strong><small>Fill Form with Random Values</small></span>
         </button>        
+        <button id="crosshair" disabled class="tool-button" type="button" aria-pressed="false" title="Click the page to drop horizontal and vertical guide lines">
+          <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span><strong>Crosshair</strong><small>Drop Lines or Draw Boxes</small></span>
+        </button>
         <button id="url-parser" disabled class="tool-button" type="button" title="Parse the current page URL and show its components">
           <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2-2A5 5 0 0 0 12 3.93l-1.15 1.15M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span><strong>URL Parser</strong><small>Parse URL components & params</small></span>
@@ -49,7 +55,7 @@
           <svg class="tool-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 3v12m-5-5 5 5 5-5M4 16v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span><strong>Download Page</strong><small>Save a snapshot as HTML</small></span>
+          <span><strong>Download Page</strong><small>Save Page as HTML</small></span>
         </button>       
         <button id="grant-access" class="access-button" type="button" hidden>Allow access to this site</button>
       </section>      

@@ -4,6 +4,7 @@ const colourButton = document.getElementById("colour-picker");
 const urlParserButton = document.getElementById("url-parser");
 const formFillButton = document.getElementById("form-fill");
 const outlineButton = document.getElementById("layout-outline");
+const crosshairButton = document.getElementById("crosshair");
 const accessButton = document.getElementById("grant-access");
 let pendingAccess = null;
 let toolkitEnabled = false;
@@ -88,6 +89,7 @@ function renderEnabled() {
   urlParserButton.disabled = !toolkitEnabled || toolBusy;
   formFillButton.disabled = !toolkitEnabled || toolBusy;
   outlineButton.disabled = !toolkitEnabled || toolBusy;
+  crosshairButton.disabled = !toolkitEnabled || toolBusy;
   if (!toolkitEnabled) {
     pendingAccess = null;
     accessButton.hidden = true;
@@ -129,6 +131,20 @@ toolkitToggle.addEventListener("click", async () => {
   }
 });
 
+async function closeOtherTools(keep) {
+  outlineButton.setAttribute("aria-pressed", String(keep === "outline" && outlineButton.getAttribute("aria-pressed") === "true"));
+  crosshairButton.setAttribute("aria-pressed", String(keep === "crosshair" && crosshairButton.getAttribute("aria-pressed") === "true"));
+  activeColourPickerTabId = null;
+  activeUrlParser = null;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (typeof tab?.id !== "number" || !/^https?:|^file:/.test(tab.url || "")) return;
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: dismissPageTools, args: [keep || ""] });
+  } catch (error) {
+    console.warn("Could not close the previous tool", error);
+  }
+}
+
 async function captureSnapshot(expectedTarget, mode = "preview") {
   const actionButton = mode === "download" ? downloadButton : snapshotButton;
   if (!toolkitEnabled) return;
@@ -139,6 +155,7 @@ async function captureSnapshot(expectedTarget, mode = "preview") {
   actionButton.title = "Creating snapshot...";
 
   try {
+    await closeOtherTools();
     await closeActiveUrlParser();
     if (!chrome.scripting?.executeScript) {
       throw new Error("Reload DevToolkit in chrome://extensions, then close and reopen this panel to activate its updated permissions.");
@@ -219,6 +236,7 @@ formFillButton.addEventListener("click", async () => {
   accessButton.hidden = true;
   formFillButton.title = "Filling form fields...";
   try {
+    await closeOtherTools();
     await closeActiveColourPicker();
     await closeActiveUrlParser();
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -250,6 +268,7 @@ outlineButton.addEventListener("click", async () => {
   toolBusy = true;
   renderEnabled();
   try {
+    await closeOtherTools("outline");
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (typeof tab?.id !== "number" || !/^https?:|^file:/.test(tab.url || "")) {
       throw new Error("Open a regular webpage to outline its layout.");
@@ -261,6 +280,62 @@ outlineButton.addEventListener("click", async () => {
   } catch (error) {
     console.warn("Could not toggle layout outline", error);
     outlineButton.title = `Could not toggle layout outline: ${error.message || String(error)}`;
+  } finally {
+    toolBusy = false;
+    renderEnabled();
+  }
+});
+
+const syncCrosshairState = async () => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (typeof tab?.id !== "number") return;
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => Boolean(window.__devtoolkitCrosshairCleanup),
+    });
+    if (!result?.result && crosshairButton.getAttribute("aria-pressed") === "true") {
+      crosshairButton.setAttribute("aria-pressed", "false");
+      crosshairButton.title = "Crosshair off";
+    }
+  } catch (error) {
+    console.warn("Could not sync crosshair state", error);
+  }
+};
+window.addEventListener("focus", () => void syncCrosshairState());
+
+window.addEventListener("keydown", event => {
+  if (event.key !== "Escape" || crosshairButton.getAttribute("aria-pressed") !== "true") return;
+  void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+    if (typeof tab?.id !== "number") return;
+    return chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => window.dispatchEvent(new Event("devtoolkit-clear-crosshair")),
+    });
+  }).then(syncCrosshairState).catch(error => console.warn("Could not clear crosshairs", error));
+});
+
+crosshairButton.addEventListener("click", async () => {
+  if (!toolkitEnabled || toolBusy) return;
+  toolBusy = true;
+  renderEnabled();
+  try {
+    await closeOtherTools("crosshair");
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (typeof tab?.id !== "number" || !/^https?:|^file:/.test(tab.url || "")) {
+      throw new Error("Open a regular webpage to use the crosshair.");
+    }
+    await closeActiveColourPicker();
+    await closeActiveUrlParser();
+    const [result] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: toggleCrosshair });
+    if (!result?.result?.ok) throw new Error("The page could not toggle the crosshair.");
+    crosshairButton.setAttribute("aria-pressed", String(result.result.enabled));
+    crosshairButton.title = result.result.enabled
+      ? "Crosshair on: click the page to drop lines. Click again to clear."
+      : "Crosshair off";
+  } catch (error) {
+    console.warn("Could not toggle crosshair", error);
+    crosshairButton.title = `Could not toggle crosshair: ${error.message || String(error)}`;
   } finally {
     toolBusy = false;
     renderEnabled();
@@ -310,6 +385,7 @@ async function startUrlParser(expectedTarget) {
   accessButton.hidden = true;
   urlParserButton.title = "Reading the active page URL...";
   try {
+    await closeOtherTools();
     await closeActiveColourPicker();
     await closeActiveUrlParser();
     if (!chrome.scripting?.executeScript) {
@@ -362,6 +438,7 @@ async function startColourPicker(expectedTarget) {
   renderEnabled();
   pendingAccess = null;
   accessButton.hidden = true;
+  await closeOtherTools();
   await closeActiveUrlParser();
   let targetTab;
   let pickerStarted = false;
