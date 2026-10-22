@@ -1,5 +1,6 @@
 const snapshotButton = document.getElementById("snapshot-dom");
 const downloadButton = document.getElementById("download-page");
+const pageOverrideButton = document.getElementById("page-override");
 const colourButton = document.getElementById("colour-picker");
 const urlParserButton = document.getElementById("url-parser");
 const formFillButton = document.getElementById("form-fill");
@@ -15,6 +16,70 @@ const toolkitToggle = document.getElementById("toolkit-toggle");
 const statusDot = document.getElementById("status-dot");
 const toolkitStatus = document.getElementById("toolkit-status");
 const themeToggle = document.getElementById("theme-toggle");
+const pageOverrideDirectoryCache = { source: null, destination: null, error: null };
+
+function openPageOverrideDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("devtoolkit-page-override", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("directories");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Could not open folder access storage."));
+    request.onblocked = () => reject(new Error("Folder access storage is blocked by another DevToolkit panel."));
+  });
+}
+
+async function readPageOverrideDirectories() {
+  const database = await openPageOverrideDatabase();
+  try {
+    return await new Promise((resolve, reject) => {
+      const transaction = database.transaction("directories", "readonly");
+      const store = transaction.objectStore("directories");
+      const source = store.get("source");
+      const destination = store.get("destination");
+      transaction.oncomplete = () => resolve({ source: source.result || null, destination: destination.result || null });
+      transaction.onerror = () => reject(transaction.error || new Error("Could not read saved folder access."));
+      transaction.onabort = () => reject(transaction.error || new Error("Reading saved folder access was interrupted."));
+    });
+  } finally {
+    database.close();
+  }
+}
+
+async function savePageOverrideDirectory(key, handle) {
+  const database = await openPageOverrideDatabase();
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction("directories", "readwrite");
+      transaction.objectStore("directories").put(handle, key);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Could not save folder access."));
+      transaction.onabort = () => reject(transaction.error || new Error("Saving folder access was interrupted."));
+    });
+  } finally {
+    database.close();
+  }
+}
+
+async function clearPageOverrideDirectories() {
+  const database = await openPageOverrideDatabase();
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction("directories", "readwrite");
+      transaction.objectStore("directories").clear();
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Could not clear saved folders."));
+      transaction.onabort = () => reject(transaction.error || new Error("Clearing saved folders was interrupted."));
+    });
+  } finally {
+    database.close();
+  }
+  pageOverrideDirectoryCache.source = null;
+  pageOverrideDirectoryCache.destination = null;
+}
+
+const pageOverrideDirectoriesReady = readPageOverrideDirectories()
+  .then(directories => Object.assign(pageOverrideDirectoryCache, directories))
+  .catch(error => { pageOverrideDirectoryCache.error = error; });
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -85,6 +150,7 @@ function renderEnabled() {
   snapshotButton.disabled = !toolkitEnabled || toolBusy;
   accessButton.disabled = !toolkitEnabled || toolBusy;
   downloadButton.disabled = !toolkitEnabled || toolBusy;
+  pageOverrideButton.disabled = !toolkitEnabled || toolBusy;
   colourButton.disabled = !toolkitEnabled || toolBusy;
   urlParserButton.disabled = !toolkitEnabled || toolBusy;
   formFillButton.disabled = !toolkitEnabled || toolBusy;
@@ -227,6 +293,99 @@ async function captureSnapshot(expectedTarget, mode = "preview") {
 snapshotButton.addEventListener("click", () => captureSnapshot());
 downloadButton.addEventListener("click", () => captureSnapshot(undefined, "download"));
 urlParserButton.addEventListener("click", () => startUrlParser());
+
+// Returns { handle, picked }. A picker consumes the click's user activation,
+// so the caller must stop after a pick and let the user click again.
+async function getPageOverrideDirectory(key, mode) {
+  await pageOverrideDirectoriesReady;
+  if (pageOverrideDirectoryCache.error) throw pageOverrideDirectoryCache.error;
+
+  const saved = pageOverrideDirectoryCache[key];
+  if (saved && (await saved.queryPermission({ mode }) === "granted" ||
+      await saved.requestPermission({ mode }) === "granted")) {
+    return { handle: saved, picked: false };
+  }
+
+  const handle = await window.showDirectoryPicker({ id: `dtk-override-${key}`, mode });
+  await savePageOverrideDirectory(key, handle);
+  pageOverrideDirectoryCache[key] = handle;
+  return { handle, picked: true };
+}
+
+pageOverrideButton.addEventListener("click", async event => {
+  if (!toolkitEnabled || toolBusy) return;
+  toolBusy = true;
+  renderEnabled();
+  const hint = pageOverrideButton.querySelector("small");
+  let copiedName = null;
+  if (event.shiftKey) {
+    try {
+      await pageOverrideDirectoriesReady;
+      await clearPageOverrideDirectories();
+      pageOverrideButton.title = hint.textContent = "Folders cleared. Click to choose the source folder.";
+    } catch (error) {
+      pageOverrideButton.title = hint.textContent = `Could not clear folders: ${error.message || String(error)}`;
+    } finally {
+      toolBusy = false;
+      renderEnabled();
+    }
+    return;
+  }
+  pageOverrideButton.title = "Finding the newest downloaded file...";
+  hint.textContent = "Finding newest downloaded file...";
+  try {
+    if (typeof window.showDirectoryPicker !== "function") {
+      throw new Error("This browser does not support folder access. Use a current version of Chrome.");
+    }
+    const source = await getPageOverrideDirectory("source", "read");
+    if (source.picked) {
+      pageOverrideButton.title = hint.textContent = "Source folder saved. Click again to choose the destination folder.";
+      return;
+    }
+    const destination = await getPageOverrideDirectory("destination", "readwrite");
+    if (destination.picked) {
+      pageOverrideButton.title = hint.textContent = "Destination folder saved. Click again to copy and open.";
+      return;
+    }
+    const sourceDirectory = source.handle;
+    const destinationDirectory = destination.handle;
+    let newestFile = null;
+    for await (const [name, entry] of sourceDirectory.entries()) {
+      if (entry.kind !== "file" || name.toLowerCase().endsWith(".crdownload")) continue;
+      const file = await entry.getFile();
+      if (!newestFile || file.lastModified > newestFile.file.lastModified) {
+        newestFile = { name, file };
+      }
+    }
+    if (!newestFile) throw new Error('No completed files were found in the "longurls" folder.');
+
+    const destinationFile = await destinationDirectory.getFileHandle(newestFile.name, { create: true });
+    const writer = await destinationFile.createWritable();
+    try {
+      await writer.write(newestFile.file);
+      await writer.close();
+    } catch (error) {
+      try { await writer.abort(); }
+      catch (abortError) { console.warn("Could not abort the incomplete page override copy", abortError); }
+      throw error;
+    }
+    copiedName = newestFile.name;
+    await chrome.tabs.create({ url: `http://localhost:8080/Shopping/${encodeURIComponent(copiedName)}` });
+    pageOverrideButton.title = `Copied and opened ${copiedName}`;
+    hint.textContent = `Copied and opened: ${copiedName}`;
+  } catch (error) {
+    const message = error.message || String(error);
+    const detail = copiedName
+      ? `Copied ${copiedName}, but could not open it: ${message}`
+      : `Could not create page override: ${message}`;
+    console.warn(detail, error);
+    pageOverrideButton.title = detail;
+    hint.textContent = detail;
+  } finally {
+    toolBusy = false;
+    renderEnabled();
+  }
+});
 
 formFillButton.addEventListener("click", async () => {
   if (!toolkitEnabled || toolBusy) return;

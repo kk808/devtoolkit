@@ -17,7 +17,7 @@ Chrome controls the native panel's placement. If it appears on the left, open Ch
 - `manifest.json`: extension metadata; `sidePanel`, `activeTab`, `scripting`, and `tabs` permissions; optional website access.
 - `background.js`: configures per-tab panels, Chrome's built-in toolbar toggle, and the Snapshot DOM keyboard shortcut.
 - `devtoolkit.html` / `devtoolkit.css`: starter panel content and appearance.
-- `devtoolkit.js`: runs the snapshot tool on the active webpage.
+- `devtoolkit.js`: runs the panel tools, including the Page Override folder-copy workflow.
 - `snapshot.js`: self-contained `snapshotDOM()` function injected into the webpage.
 - `icons/`: toolbar and extension icons.
 
@@ -52,6 +52,10 @@ API reference: https://developer.chrome.com/docs/extensions/reference/api/sidePa
 ### Download Page
 
 Use the **Download Page** button in the panel to download the active page as `page_title_YYYYMMDD_HHMMSS.html`. It no longer has a keyboard shortcut, because Chrome allows at most four suggested shortcuts per extension.
+
+### Page Override
+
+Use **Page Override** to copy the most recently modified completed file from `longurls` into `Shopping`, then open `http://localhost:8080/<filename>` in a new tab. The first run asks you to choose the source folder (`longurls`), then, on the next click, the destination folder (`Shopping`); Chrome allows only one folder picker per click. Chrome remembers those folder handles for later runs. To choose different folders, Shift+click **Page Override** to clear them, then click again to re-pick. If access is revoked or the extension's stored folder access is unavailable, the button asks you to select the folders again. Chrome requires this explicit folder access; DevToolkit cannot silently access arbitrary paths on your computer.
 
 ### Colour Picker
 
